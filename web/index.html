@@ -26,6 +26,12 @@
 
       <section class="instrument" aria-label="Light instrument">
         <div class="instrument-top"><span><span class="status-dot" id="status-dot"></span><span id="status">LOADING CIE DATA</span></span><span>CIE 1931 · 2° OBSERVER</span></div>
+        <section class="song-player" aria-labelledby="song-title">
+          <div class="song-heading"><span class="section-label">PLAY A CLASSIC</span><h2 id="song-title">Ode to Joy <span>Beethoven</span></h2><p>Theme in C major · melody & harmony</p></div>
+          <div class="song-actions"><button id="song-play" type="button" disabled>▶ Play song</button><button id="song-restart" type="button" disabled>Restart</button><button id="song-stop" type="button" disabled>Stop</button><label for="song-tempo">Tempo <select id="song-tempo" disabled><option value="0.75">72 BPM</option><option value="1" selected>96 BPM</option><option value="1.25">120 BPM</option></select></label></div>
+          <div class="song-timeline"><span id="song-status">Play to hear the song and watch its spectrum</span><progress id="song-progress" max="64" value="0" aria-label="Song progress"></progress><output id="song-time">0:00 / 0:40</output></div>
+          <p class="song-note">Play enables sound. Playing a key takes over. <a href="./music/README.txt">Public-domain score & arrangement notes ↗</a></p>
+        </section>
         <div class="visual-grid">
           <div class="light-screen" id="light-screen">
             <div class="screen-top"><span>MIXED LIGHT</span><span id="color-hex">#000000</span></div>

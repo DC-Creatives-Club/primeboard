@@ -1,10 +1,12 @@
 import { KEYS, ROWS, MAX_EXPONENT, parseCMF, matchingAt, spectrumXYZ, primeProduct, decodeProduct, displayColor, chromaticity } from './color.js';
 import { Instrument } from './instrument.js';
 import { Synth } from './audio.js';
+import { ODE_TO_JOY, SongPlayer, songSpectrum, songFrames } from './song.js';
 
 const $ = id => document.getElementById(id);
 const instrument = new Instrument();
 const synth = new Synth();
+const player = new SongPlayer(ODE_TO_JOY);
 const codeMap = new Map(KEYS.map(key => [key.code, key.index]));
 const svgNS = 'http://www.w3.org/2000/svg';
 let rows, keyColors, keyButtons, spectrumLines;
@@ -12,6 +14,8 @@ let exposure = 1;
 let currentNumber = '1';
 let soundPending = false;
 let copyTimer;
+let songPending = false;
+let playRequest = 0;
 const defaultDetail = '26 primes · 700–400 nm · C3–C♯5';
 
 function normalizedColor(xyz) {
@@ -74,7 +78,8 @@ function makeSpectrum() {
 }
 
 function render() {
-  const e = instrument.exponents;
+  const inSong = player.state === 'playing' || player.state === 'paused';
+  const e = inSong ? songSpectrum(player.song, player.beat) : instrument.exponents;
   const xyz = spectrumXYZ(e, rows);
   const color = displayColor(xyz, exposure);
   const xy = chromaticity(xyz);
@@ -94,7 +99,7 @@ function render() {
   $('power').textContent = power;
   $('line-count').textContent = `${active} ${active === 1 ? 'LINE' : 'LINES'}`;
   $('gamut-note').textContent = `${color.outOfGamut ? 'Outside sRGB gamut · approximated' : 'sRGB preview'} · exposure compressed`;
-  $('status').textContent = active ? (instrument.held.size ? 'PLAYING' : 'SUSTAINING') : 'READY TO PLAY';
+  $('status').textContent = inSong ? `${player.state === 'playing' ? 'PLAYING' : 'PAUSED'} · ODE TO JOY` : active ? (instrument.held.size ? 'PLAYING' : 'SUSTAINING') : 'READY TO PLAY';
   $('mixture-label').textContent = active ? `${active} ${active === 1 ? 'frequency' : 'frequencies'} · ${power} power ${power === 1 ? 'unit' : 'units'}${e.includes(MAX_EXPONENT) ? ' · hold limit 32' : ''}` : 'Press a key to begin';
   $('sustain').setAttribute('aria-pressed', String(instrument.sustain));
   $('sustain').querySelector('.button-state').textContent = instrument.sustain ? 'on' : 'off';
@@ -110,15 +115,74 @@ function render() {
     spectrumLines[i].setAttribute('y2', 112 - 96 * value / peak);
   });
   $('spectrum').setAttribute('aria-label', active ? `Relative spectral power, plot maximum ${peak} units: ${e.map((v, i) => v ? `${KEYS[i].frequencyTHz.toFixed(1)} terahertz at ${v} units` : '').filter(Boolean).join('; ')}` : 'No spectral lines active');
-  synth.sync(e);
+  if (!inSong) synth.sync(e);
 }
 
 function press(index, source) {
+  takeOver();
   if (instrument.press(index, source, performance.now())) { showKey(index); render(); }
 }
 function release(source) { if (instrument.release(source)) render(); }
-function clear() { instrument.clear(); render(); }
-function toggleSustain() { instrument.setSustain(!instrument.sustain); render(); }
+function clear() { stopSong(); instrument.clear(); render(); }
+function toggleSustain() { takeOver(); instrument.setSustain(!instrument.sustain); render(); }
+
+function refreshSoundControls() {
+  $('sound').setAttribute('aria-pressed', String(synth.enabled));
+  $('sound').querySelector('.sound-label').textContent = synth.enabled ? 'Sound on' : 'Enable sound';
+  $('audio-hint').textContent = synth.enabled ? 'Sine tones are on. Hold a key to increase its light and sound power.' : 'Enable sound to hear the same prime-weighted spectrum as sine tones.';
+}
+function renderSongControls() {
+  const time = beats => {
+    const seconds = Math.floor(beats / player.beatsPerSecond);
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  };
+  $('song-play').textContent = songPending ? 'Starting…' : player.state === 'playing' ? 'Ⅱ Pause' : player.state === 'paused' ? '▶ Resume' : player.state === 'ended' ? '↻ Play again' : '▶ Play song';
+  $('song-play').disabled = songPending;
+  $('song-stop').disabled = player.state === 'idle' && !songPending;
+  $('song-progress').value = player.beat;
+  $('song-time').textContent = `${time(player.beat)} / ${time(player.song.beats)}`;
+  $('song-status').textContent = player.state === 'playing' ? `Playing · bar ${Math.min(16, Math.floor(player.beat / 4) + 1)} of 16` : player.state === 'paused' ? 'Paused · press Resume to continue' : player.state === 'ended' ? 'Finished · play it again or try the keys' : 'Play to hear the song and watch its spectrum';
+}
+function stopSong() {
+  playRequest++;
+  songPending = false;
+  player.stop(); synth.stopSequence(); renderSongControls();
+}
+function takeOver() {
+  if (player.state !== 'idle' || songPending) {
+    stopSong(); instrument.clear();
+  }
+}
+function pauseSong() {
+  if (songPending) { stopSong(); return; }
+  if (player.state !== 'playing') return;
+  player.pause(synth.context.currentTime);
+  synth.stopSequence(); renderSongControls(); render();
+}
+function scheduleSong() {
+  const startAt = synth.context.currentTime + .03;
+  player.play(startAt);
+  synth.scheduleSequence(songFrames(player.song, player.beat), startAt, player.beatsPerSecond);
+  renderSongControls(); render();
+}
+async function playSong() {
+  if (songPending || soundPending) return;
+  if (player.state === 'playing') { pauseSong(); return; }
+  const request = ++playRequest;
+  songPending = true; renderSongControls();
+  try {
+    await synth.enable();
+    refreshSoundControls();
+    if (request !== playRequest || document.hidden) return;
+    instrument.clear(); instrument.setSustain(false);
+    $('form-message').textContent = ''; $('app-message').textContent = '';
+    scheduleSong();
+  } catch (error) {
+    if (request === playRequest) $('app-message').textContent = `Song could not start: ${error.message}`;
+  } finally {
+    if (request === playRequest) { songPending = false; renderSongControls(); }
+  }
+}
 function typingTarget(target) {
   if (!(target instanceof Element)) return false;
   if (target.closest('textarea, select, [contenteditable="true"]')) return true;
@@ -162,25 +226,35 @@ function bindInputs() {
   for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
     $('keyboard').addEventListener(type, event => { pointers.delete(event.pointerId); release(`pointer-${event.pointerId}`); });
   }
-  const stop = () => { pointers.clear(); clear(); synth.stop(); };
+  const stop = () => {
+    pointers.clear(); pauseSong(); instrument.clear(); synth.stop(); render();
+  };
   window.addEventListener('blur', stop);
   document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
   window.addEventListener('pagehide', stop);
   $('clear').addEventListener('click', clear);
   $('sustain').addEventListener('click', toggleSustain);
   $('sound').addEventListener('click', async () => {
-    if (soundPending) return;
+    if (soundPending || songPending) return;
     soundPending = true;
     try {
-      if (synth.enabled) synth.disable(); else await synth.enable();
-      $('sound').setAttribute('aria-pressed', String(synth.enabled));
-      $('sound').querySelector('.sound-label').textContent = synth.enabled ? 'Sound on' : 'Enable sound';
-      $('audio-hint').textContent = synth.enabled ? 'Sine tones are on. Hold a key to increase its light and sound power.' : 'Enable sound to hear the same prime-weighted spectrum as sine tones.';
+      if (synth.enabled) { pauseSong(); synth.disable(); } else await synth.enable();
+      refreshSoundControls();
       $('app-message').textContent = '';
-      synth.sync(instrument.exponents);
+      render();
       $('keyboard').focus({ preventScroll: true });
     } catch (error) { $('app-message').textContent = `Sound could not start: ${error.message}`; }
     finally { soundPending = false; }
+  });
+  $('song-play').addEventListener('click', playSong);
+  $('song-stop').addEventListener('click', clear);
+  $('song-restart').addEventListener('click', () => { clear(); playSong(); });
+  $('song-tempo').addEventListener('change', event => {
+    const playing = player.state === 'playing';
+    const now = synth.context?.currentTime || 0;
+    player.setRate(Number(event.target.value), now);
+    if (playing && player.state === 'playing') scheduleSong();
+    else { renderSongControls(); render(); }
   });
   $('exposure').addEventListener('input', event => {
     exposure = 2 ** Number(event.target.value);
@@ -207,6 +281,7 @@ function bindInputs() {
     daylight: KEYS.map(key => [key.index, 1]),
   };
   document.querySelectorAll('[data-preset]').forEach(button => button.addEventListener('click', () => {
+    takeOver();
     const exponents = KEYS.map(() => 0);
     for (const [i, e] of presets[button.dataset.preset]) exponents[i] = e;
     instrument.load(exponents); $('form-message').textContent = ''; render();
@@ -215,6 +290,7 @@ function bindInputs() {
     event.preventDefault();
     try {
       const exponents = decodeProduct($('number-input').value);
+      takeOver();
       instrument.load(exponents); render();
       $('form-message').textContent = currentNumber === '1' ? '1 is the empty product: no spectral lines, no light.' : 'Number loaded. Sustain is on; play more keys to add to it.';
       $('number-input').removeAttribute('aria-invalid');
@@ -222,6 +298,19 @@ function bindInputs() {
   });
   // Discrete real-time steps, independent of browser/OS key-repeat settings.
   setInterval(() => { if (instrument.tick(performance.now())) render(); }, 25);
+  let lastSongSpectrum = '';
+  const animateSong = () => {
+    if (player.state === 'playing') {
+      player.update(synth.context.currentTime);
+      const spectrum = songSpectrum(player.song, player.beat).join(',');
+      if (spectrum !== lastSongSpectrum || player.state === 'ended') {
+        lastSongSpectrum = spectrum; render();
+      }
+      renderSongControls();
+    }
+    requestAnimationFrame(animateSong);
+  };
+  requestAnimationFrame(animateSong);
 }
 
 async function start() {
@@ -231,6 +320,7 @@ async function start() {
     rows = parseCMF(await response.text());
     makeKeyboard(); makeSpectrum(); bindInputs();
     document.querySelectorAll('button[disabled]').forEach(button => { button.disabled = false; });
+    $('song-tempo').disabled = false; renderSongControls();
     $('status-dot').classList.add('ready'); $('app-message').textContent = ''; render();
   } catch (error) {
     $('status').textContent = 'COULD NOT LOAD';

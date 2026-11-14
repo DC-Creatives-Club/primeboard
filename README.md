@@ -15,7 +15,7 @@ With Node.js 22 or newer:
 
 ```sh
 npm run dev       # http://127.0.0.1:5173
-npm test          # color science and input-state regression tests
+npm test          # color science, input, audio, and song regression tests
 npm run build    # deployable static files in dist/web/
 ```
 
@@ -24,6 +24,13 @@ directly. ES modules and the local CSV fetch require HTTP, rather than `file://`
 
 ## Play
 
+- **Play song** performs Beethoven's public-domain *Ode to Joy* theme on the
+  keyboard, with synchronized key highlights, colors, exact integers, and audio.
+  Pause/resume, restart, stop, and three tempos are available. Playing a key or
+  loading a number/preset takes over; leaving the window pauses the song.
+  Melody weights are 2, accompaniment weights 1; long song notes keep fixed
+  weights. The hold-intensity control continues to apply to live keys.
+  See [music provenance and arrangement notes](web/music/README.txt).
 - Type QWERTY letters, click keys, or touch multiple keys. Drag across the keys to play.
 - Every press starts at exponent 1. Holding increases it at a configurable interval
   (default 500 ms, independent of OS key repeat), up to 32.
