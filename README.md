@@ -1,31 +1,133 @@
-#pygame virtual keyboard which assigns a prime number, light frequency, and sound frequency
-#to keys. it mixes the light frequencies to corresponding RGB colors, mixes
-#the pure tones to sounds, and multiplies the primes to get unique numbers.
+# Primeboard
 
-https://pypi.org/project/synesthesiaer/0.0.4/
+A playable keyboard of prime numbers, spectral light, and sine tones.
+Public app: **https://primeboard.jacksonwalters.com**.
 
+The browser app is static HTML, CSS, and JavaScript, with no runtime packages,
+accounts, telemetry, external assets, or backend. The CIE table is bundled locally.
+The former `synesthesiaer` Python CLI is retired and its legacy files removed.
+This repository no longer builds or publishes a Python package.
+Existing PyPI releases have not been deleted or changed.
+
+## Run
+
+With Node.js 22 or newer:
+
+```sh
+npm run dev       # http://127.0.0.1:5173
+npm test          # color science and input-state regression tests
+npm run build    # deployable static files in dist/web/
 ```
-pip install synesthesiaer
-python3 -m synesthesiaer.main
+
+No dependency installation is necessary. Any static HTTP server can serve `web/`
+directly. ES modules and the local CSV fetch require HTTP, rather than `file://`.
+
+## Play
+
+- Type QWERTY letters, click keys, or touch multiple keys. Drag across the keys to play.
+- Every press starts at exponent 1. Holding increases it at a configurable interval
+  (default 500 ms, independent of OS key repeat), up to 32.
+- Toggle **Sustain** (or press Space outside controls) to retain released notes.
+  Pressing a sustained key again adds 1 to its exponent.
+- **Clear** or Escape resets the mixture. Leaving the window or hiding the page
+  also clears it, preventing stuck sound and unnoticed background accumulation.
+- **Sound** is off initially. Enable it to play sine tones, C3 through C♯5,
+  using browser Web Audio. Each tone's amplitude is proportional to the square
+  root of its exponent, so holding a key increases its power. Chords are summed
+  before a shared output compressor and soft limiter; master volume is bounded.
+- Try a preset or enter a positive integer whose prime factors are among the
+  first 26 primes (2 through 101). The integer and exponents are exact `BigInt` values.
+- **Screen exposure** changes only the preview. It does not change the number,
+  spectral power, XYZ, or sound.
+
+Physical letter positions use `KeyboardEvent.code`, with QWERTY labels. Click the
+keyboard or Enable sound to give it focus. Letter keys continue to work after
+adjusting sliders; typing in the number field remains normal text entry. Some
+physical keyboards limit simultaneous keys; pointer input and sustain also work.
+
+## The model
+
+For zero-based key index `i = 0..25`, assign prime `p_i` and wavelength
+`lambda_i = 700 * (400/700)^(i/25)` nm. This makes optical frequencies `c/lambda_i`
+logarithmically spaced from red to violet. This is a useful slice of the visible
+spectrum, not a claim that human vision ends exactly at 400 and 700 nm.
+
+The state consists of integer exponents `e_i` from 0 to 32:
+
+```text
+n = product(p_i ^ e_i)
+S_lambda(lambda) = sum(e_i * delta(lambda - lambda_i))
+(X, Y, Z) = sum(e_i * (x_bar(lambda_i), y_bar(lambda_i), z_bar(lambda_i)))
 ```
 
-This code assigns a color and sound to a range of positive integers in a natural
-way.
+An exponent is relative integrated radiant power, not photon count. A delta line's
+integrated weight is unchanged by switching from wavelength to frequency; a
+continuous spectral density would require the appropriate Jacobian. Mixing does
+not create a new frequency, average wavelengths, or mix gamma-encoded RGB.
 
-Input: n
+Unique prime factorization is a lossless encoding of this finite spectral state.
+Multiplying encoded numbers adds spectral weights (where the resulting weights
+fit the instrument's limit). Squaring a number doubles XYZ and preserves
+chromaticity. Different spectra can share the same XYZ (metamerism), so the final
+color is not a unique encoding of the integer.
 
-1) Factor n into a product of primes n = p_1^s_1 * ... * p_r ^s_r
+Official [CIE 1931 2° data](https://cie.co.at/datatable/cie-1931-colour-matching-functions-2-degree-observer)
+is sampled at 1 nm and linearly interpolated. The app exposes unmodified relative
+luminance Y and chromaticity x,y; hover the luminance readout for full XYZ.
 
-2) Map every prime to a wavelength into the visible range which is roughly 380nm (800Thz, violet) - 700nm (400Thz, red). Use f_red*(f_violet/f_red)^((i-1)/(num_keys-1)) in analogy to the keyboard mapping of sound frequencies 440Hz*2^((i-49)/12).
+### Screen limitations
 
-3) For example, the number 197 is p_45. Its light frequency is 492 THz ->  608nm wavelength, so red. 563 is p_103, so 649 THz -> 462nm, so blue. Combining them we get the number 110911 which has a bright purple color. 
+XYZ is converted to linear sRGB using the D65 matrix from
+[W3C CSS Color 4](https://www.w3.org/TR/css-color-4/#color-conversion-code).
+Pure spectral light usually lies outside the sRGB gamut. Negative channels are
+clipped, then a shared exposure scale compresses brightness:
 
-4) To convert this spectrum to the appropriate color of light we use the CIE color matching functions (https://www.cs.rit.edu/~ncs/color/t_spectr.html). This can be implemented in almost any language. (https://mathematica.stackexchange.com/questions/57389/convert-spectral-distribution-to-rgb-color/57457#57457).
+```text
+r = max(0, M * XYZ)       # componentwise
+m = max(r)
+display_linear = r * (1 - exp(-exposure * m)) / m  # black when m = 0
+```
 
-Output: An RBG color specification.
+Apply the standard sRGB transfer function last. This explicit preview transform
+does not claim exact screen reproduction of spectral light. The numeric XYZ
+stays untouched; the screen glow is decorative, and the displayed hex value is
+the computed color. Keycap colors are normalized for visibility.
 
-A similar method can be used for sound, in which case we just scale into the audible range of 20Hz - 20kHz. We then need to mix the tones to get a sound using a synthesizer package, in this case tones.
+Equal radiant power is not equal perceived brightness. Deep red and violet may
+look dim. Full spectrum is a sum of 26 equal-power lines, not a calibrated D65
+illuminant or a promise of white.
 
-Importantly, *spectra* of colors and sounds combine additively. Combining natural numbers via multiplication is straightforward.
+### Sound from the same exponents
 
-This could be used to make a keyboard whose keys are appropriately colored and labeled by prime numbers.
+Each prime also maps to a fixed audible frequency, `440 * 2^((48+i-69)/12)` Hz.
+The positive-frequency power spectrum is proportional to
+`sum(e_i * delta(f - f_i))`. The corresponding steady-state signal is
+`s(t) = A0 * sum(sqrt(e_i) * sin(2*pi*f_i*t + phase_i))`, with `A0 = 0.18`.
+Distinct tones add; a sine's average power is its squared amplitude divided by
+two. Multiplying numbers adds spectral power weights. It does not mean adding
+two phase-coherent copies of the same sine at full amplitude.
+
+Adding a note leaves the other oscillators' target gains unchanged. Smooth
+attack/release envelopes prevent clicks. After the linear sum, a compressor
+and a final soft limiter bound loud chords before master volume. This output
+processing, like the color preview's tone mapping, can change the delivered
+spectrum when engaged; the encoded powers and raw sine mixture stay separate.
+
+## Deployment
+
+Use the existing `application_server` SSH host. See [deployment instructions](deploy/README.md).
+The app needs one DNS A record and an Nginx static host with HTTPS; no app service,
+database, process manager, or Python environment is needed.
+
+## Layout
+
+- `web/color.js`: pure spectral math, exact integer encoding, display conversion.
+- `web/instrument.js`: source-aware input ownership, holds, sustain, reset.
+- `web/audio.js`: persistent Web Audio voices, attack/release, bounded output.
+- `web/app.js`: keyboard, pointer, accessibility, graph, and UI integration.
+- `web/data/`: official CIE data, metadata, attribution, and detailed model notes.
+- `tests/`: Node's built-in test runner; no test dependencies.
+
+Software: MIT. CIE data: **CC BY-SA 4.0**, separately attributed in the app and
+[`web/data/README.txt`](web/data/README.txt). The CSV is unmodified and its published
+SHA-256 checksum is checked by the tests.

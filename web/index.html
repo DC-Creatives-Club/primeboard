@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#111214">
+  <meta name="description" content="Play with primes, light, and sound. A rainbow keyboard that mixes spectral lines using the CIE 1931 color-matching functions.">
+  <title>Primeboard — play a little light</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="masthead">
+      <a class="brand" href="./" aria-label="Primeboard home"><img src="./icon.svg" width="28" height="28" alt=""><span>primeboard<span class="brand-dot">.</span></span></a>
+      <span class="edition">AN INSTRUMENT FOR LIGHT</span>
+      <a class="quiet-link" href="#the-math">The math <span aria-hidden="true">↗</span></a>
+    </header>
+
+    <main>
+      <div class="intro">
+        <div><p class="eyebrow">PRIMES × SPECTRA × SOUND</p><h1>Play a little light.</h1></div>
+        <p>Every key, a prime. Every prime, a color.<br> Hold a few together. See what adds up.</p>
+      </div>
+
+      <section class="instrument" aria-label="Light instrument">
+        <div class="instrument-top"><span><span class="status-dot" id="status-dot"></span><span id="status">LOADING CIE DATA</span></span><span>CIE 1931 · 2° OBSERVER</span></div>
+        <div class="visual-grid">
+          <div class="light-screen" id="light-screen">
+            <div class="screen-top"><span>MIXED LIGHT</span><span id="color-hex">#000000</span></div>
+            <div class="light-field" id="light-field" aria-hidden="true"><div class="light-orb" id="light-orb"></div></div>
+            <div class="product-area">
+              <p class="number-label">YOUR NUMBER</p>
+              <output id="product" aria-label="Exact prime product">1</output>
+              <p class="factorization" id="factorization">The empty product. The lights are off.</p>
+            </div>
+            <div class="screen-bottom"><span id="mixture-label">Press a key to begin</span><button id="copy" class="text-button" type="button" disabled>Copy number <span aria-hidden="true">↗</span></button></div>
+          </div>
+          <aside class="spectrum-panel" aria-label="Spectrum and color measurements">
+            <div class="panel-heading"><span>THE SPECTRUM</span><span id="line-count">0 LINES</span></div>
+            <p class="small-description">Separate frequencies. One perception.</p>
+            <svg id="spectrum" viewBox="0 0 320 140" role="img" aria-label="No spectral lines active"><g id="spectrum-grid"></g><g id="spectrum-lines"></g><text id="spectrum-max" x="312" y="10" text-anchor="end">4 power units</text><text x="8" y="135">428 THz</text><text x="312" y="135" text-anchor="end">749 THz</text></svg>
+            <div class="spectrum-ramp" id="spectrum-ramp"></div>
+            <div class="axis-labels"><span>RED / LOW FREQUENCY</span><span>VIOLET / HIGH</span></div>
+            <dl class="readouts"><div><dt>Relative luminance Y</dt><dd id="luminance">0.0000</dd></div><div><dt>Chromaticity x, y</dt><dd id="chromaticity">—</dd></div><div><dt>Total power units</dt><dd id="power">0</dd></div></dl>
+            <p class="gamut-note" id="gamut-note">sRGB preview · exposure compressed</p>
+          </aside>
+        </div>
+
+        <div class="keyboard-top"><div><span class="section-label">THE KEYBOARD</span><span class="key-hint">Type the letters below. Hold to build intensity.</span></div><div class="transport"><button id="sound" type="button" aria-pressed="false" disabled><span aria-hidden="true">♪</span> <span class="sound-label">Enable sound</span></button><button id="sustain" type="button" aria-pressed="false" disabled>Sustain <span class="button-state">off</span></button><button id="clear" type="button" disabled>Clear <kbd>esc</kbd></button></div></div>
+        <p id="audio-hint" class="audio-hint">Enable sound to hear the same prime-weighted spectrum as sine tones.</p>
+        <div id="keyboard" class="keyboard" tabindex="0" aria-label="26 keys from red to violet. Type the matching QWERTY letters to play." aria-describedby="audio-hint"></div>
+        <div class="keyboard-bottom"><span id="key-detail">26 primes · 700–400 nm · C3–C♯5</span><span><kbd>space</kbd> sustain <span class="hint-divider">/</span> <kbd>esc</kbd> clear</span></div>
+      </section>
+
+      <div class="below-instrument">
+        <section class="experiments" aria-labelledby="experiment-heading"><h2 id="experiment-heading">A few starting points<span>LOAD A MIXTURE</span></h2><div class="presets"><button data-preset="ember" type="button" disabled><span class="preset-dot ember"></span>Ember<span class="preset-formula">red + yellow</span><span aria-hidden="true">↗</span></button><button data-preset="violet" type="button" disabled><span class="preset-dot violet"></span>Afterglow<span class="preset-formula">red + blue</span><span aria-hidden="true">↗</span></button><button data-preset="daylight" type="button" disabled><span class="preset-dot daylight"></span>Full spectrum<span class="preset-formula">all 26 lines</span><span aria-hidden="true">↗</span></button></div></section>
+        <section class="controls" aria-label="Instrument settings"><label for="exposure">Screen exposure <output id="exposure-value">1.0×</output><input id="exposure" type="range" min="-3" max="5" value="0" step="0.1"></label><label for="hold-speed">Hold step <output id="hold-value">0.50 s</output><input id="hold-speed" type="range" min="100" max="1500" value="500" step="50"></label><label for="volume">Sound volume <output id="volume-value">25%</output><input id="volume" type="range" min="0" max="50" value="25" step="1"></label></section>
+      </div>
+
+      <section class="number-explorer" aria-labelledby="explore-heading"><div><h2 id="explore-heading">What color is a number?</h2><p>Give the keyboard a product of its primes. Hear and see its factors.</p></div><form id="number-form"><label class="sr-only" for="number-input">Positive integer made from primes 2 through 101</label><input id="number-input" name="number" type="text" inputmode="numeric" autocomplete="off" placeholder="Try 30 = 2 × 3 × 5" maxlength="1600" required><button type="submit" id="load-number" disabled>Play number <span aria-hidden="true">→</span></button></form><p id="form-message" role="status"></p></section>
+
+      <details id="the-math" class="math"><summary><span><span class="math-symbol">∑</span> A little math. A lot of color.</span><span class="details-hint">HOW IT WORKS <span aria-hidden="true">+</span></span></summary><div class="math-content">
+        <article><h3>01 / Numbers become spectra</h3><p>Each key has a distinct prime pᵢ and a fixed wavelength λᵢ. A press starts at exponent 1; holding adds 1 at the selected interval, up to 32. Each exponent is an equal-radiant-power weight, not a photon count.</p><div class="equation">n = ∏ pᵢ<sup>eᵢ</sup><br>S<sub>λ</sub>(λ) = ∑ eᵢ δ(λ − λᵢ)</div><p>Unique factorization recovers every spectral weight. Multiplying numbers adds their spectra, within the instrument’s range. The number 1 means no light. Sustain keeps released weights; pressing again adds to them.</p></article>
+        <article><h3>02 / Spectra become perception</h3><p>Light frequencies are logarithmically spaced from 700 nm red to 400 nm violet, using f = c/λ. The official CIE 1931 2° observer functions convert the sum of spectral lines to XYZ:</p><div class="equation">(X, Y, Z) = ∑ eᵢ (x̄(λᵢ), ȳ(λᵢ), z̄(λᵢ))</div><p>The 1 nm data is linearly interpolated. Mixing adds power at existing frequencies; it does not average frequencies or produce a new spectral line. Different spectra can look identical: a color alone cannot recover the number.</p></article>
+        <article><h3>03 / Perception meets a screen</h3><p>XYZ is transformed to linear sRGB. Most pure spectral colors are outside a screen’s gamut. We clip negative channels, apply one shared exposure-compression scale, then apply the sRGB transfer function. The preview is an approximation; the XYZ values above remain unmodified.</p><p>Doubling every exponent doubles XYZ and preserves chromaticity. Equal power does not mean equal perceived brightness, so violet and deep red can look dim. Keycap colors are normalized as a guide.</p><p>Sound uses the same exponents as power weights, with one equal-tempered sine tone per prime, C3 to C♯5. Amplitude grows as √eᵢ, because power is proportional to amplitude squared. Tones add before output compression and limiting; these protect loud chords and do not change the encoded spectrum.</p><div class="equation">s(t) = A₀ ∑ √eᵢ sin(2πfᵢt + φᵢ)</div></article>
+        <p class="sources">Data: <a href="https://cie.co.at/datatable/cie-1931-colour-matching-functions-2-degree-observer" target="_blank" rel="noreferrer">CIE (2019), DOI 10.25039/CIE.DS.xvudnb9b</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>. Unmodified data, bundled locally. Conversion: <a href="https://www.w3.org/TR/css-color-4/#color-conversion-code" target="_blank" rel="noreferrer">W3C CSS Color 4</a>. <a href="./data/README.txt">Data provenance & display formula</a>.</p>
+      </div></details>
+      <p id="app-message" class="app-message" role="status">Loading the color-matching functions…</p>
+      <noscript><p>Primeboard needs JavaScript to mix light and play sound. Please enable JavaScript and reload.</p></noscript>
+    </main>
+    <footer><span>MADE OF LIGHT & PRIME NUMBERS</span><a href="https://jacksonwalters.com">An experiment by Jackson Walters <span aria-hidden="true">↗</span></a><a href="https://github.com/DC-Creatives-Club/primeboard">Source ↗</a></footer>
+  </div>
+</body>
+</html>
