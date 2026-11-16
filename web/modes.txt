@@ -1,0 +1,70 @@
+# Eigenmode views
+
+The 26 primes keep the same integer exponents, keyboard letters, optical hues,
+and musical pitches in every view. The exact number is optional in the modal
+view: open **Prime encoding** to inspect or copy it. It encodes mode weights;
+it does not encode phase or the current animation time.
+
+## Spatial basis
+
+Use the unit square with simply supported edges (zero displacement and bending
+moment), for an ideal thin, homogeneous, isotropic Kirchhoff–Love plate. The
+ordinary shapes are sin(m pi x) sin(n pi y); natural angular frequency is
+proportional to m²+n². Boundary conditions matter: this is not a free-edge plate
+held at its center, and we do not simulate granular dynamics.
+
+Our orthonormal basis is:
+
+    phi_mm = 2 sin(m pi x) sin(m pi y)
+    phi_mn,+/- = sqrt(2) [sin(m pi x) sin(n pi y)
+                         +/- sin(n pi x) sin(m pi y)], m < n
+
+The first 26 functions are ordered by m²+n², then m, then + before −. The
+rotation within each degenerate pair is a valid eigenbasis and produces the
+curved and diagonal nodal patterns. Each shape has integral phi² dx dy = 1.
+
+Reference for the plate equation, boundary conditions and sine-product solution:
+[Jim Woodhouse, Euphonics, Plate vibration](https://euphonics.org/3-2-3-plate-vibration/).
+The implementation and these derivations are original; no reference images or
+source code are used.
+
+## Three readouts
+
+**Colored nodes** draws a narrow band around each individual mode's zero set,
+then adds those layers. This intentionally preserves the individual patterns.
+It is a diagram of which modes are present, not the nodal set of their summed
+displacement or a prediction of where sand will settle. Line thickness uses
+an approximate distance |phi| / max(2, |gradient phi|), with Gaussian width
+0.005 of the plate side. Each layer's weight is e_i.
+
+Hues come from each key's CIE XYZ, normalized by its largest positive linear
+sRGB channel for visibility. Weighted XYZ layers add before the existing
+gamut clipping, exposure compression and sRGB transfer. Thus the palette is
+related to the light view, but normalized layer brightness is illustrative.
+
+**Vibration strength** shows mean squared displacement, not local mechanical
+energy. With distinct musical frequencies and fixed amplitudes,
+
+    u(x,y,t) = sum sqrt(e_i) phi_i(x,y) cos(2 pi f_i t)
+    long-time mean of u² = (1/2) sum e_i phi_i(x,y)²
+
+The spatial integral is sum e_i / 2. It is bright at antinodes and dark where
+motion is small. If natural plate frequencies were used instead, equal-frequency
+degenerate modes would retain coherent cross terms; this formula would need
+those terms or an explicit incoherence assumption. Physical energy would also
+require velocities and plate-curvature terms. We make neither claim here.
+
+**Moving field** shows the signed linear sum u, with blue for positive and
+orange for negative displacement. Frequencies are the same distinct
+equal-tempered pitches as audio, slowed by a common factor of 200 for viewing.
+These are musically retuned plate shapes, not a solution of the unmodified
+plate's free-vibration equation. Relative frequency ratios are preserved;
+visual phase is illustrative, not locked to audio oscillator phase. Most
+equal-tempered chords are not exactly periodic. The animation can be frozen,
+defaults to frozen when reduced motion is requested, and stops for a paused
+song or a hidden page.
+
+For a fixed instant, nodal lines of the sum can arise from cancellation even
+where neither individual mode is zero. For a point to remain a node for all
+time under distinct nonzero frequencies, every active mode must vanish there.
+That distinction is why the three readouts look different for a chord.

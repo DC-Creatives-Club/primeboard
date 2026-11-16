@@ -15,7 +15,7 @@ With Node.js 22 or newer:
 
 ```sh
 npm run dev       # http://127.0.0.1:5173
-npm test          # color science, input, audio, and song regression tests
+npm test          # color, input, audio, song, and surface-mode checks
 npm run build    # deployable static files in dist/web/
 ```
 
@@ -24,6 +24,16 @@ directly. ES modules and the local CSV fetch require HTTP, rather than `file://`
 
 ## Play
 
+- **Eigenmodes** preserves the 2D square-plate visualization: Colored nodes,
+  Vibration strength, and Moving field. Its original presets, freeze control,
+  note labels, and optional Prime encoding are available in this view. See the
+  [square-plate model](web/modes.txt) for its basis and musical retuning.
+- **Rounded cube** displays a rounded thin metal surface, with one computed surface
+  eigenmode per prime. Drag the cube to turn it, or focus it and use arrow keys.
+  **Inspect a mode** loads a single pattern with Sustain on. Chords combine
+  patterns; bright lines trace their zeros. **Pause motion**, **Reset view**, and
+  **Save image** support inspection and PNG export. **Light** restores the
+  original display. Reduced-motion preferences start the animation paused.
 - **Classical library**, below the keyboard and settings, offers ten public-domain
   themes and excerpts: *Ode to Joy*, *Für Elise*, *Minuet in G*, *Eine kleine
   Nachtmusik*, Bach's *Prelude in C major*, *Gymnopédie No. 1*, *Brahms’ Lullaby*,
@@ -126,6 +136,28 @@ and a final soft limiter bound loud chords before master volume. This output
 processing, like the color preview's tone mapping, can change the delivered
 spectrum when engaged; the encoded powers and raw sine mixture stay separate.
 
+### Rounded metal surface
+
+The geometry joins planar faces, cylindrical edges, and spherical corners:
+the boundary of `[-0.7,0.7]^3 + B_0.3`. An offline cotangent FEM solve supplies
+26 nonconstant Laplace–Beltrami eigenfunctions on a welded closed surface.
+The browser mixes this basis using a scalar surface-biharmonic bending
+approximation: `rho h u_tt + D Delta_S^2 u = 0`. Its modal frequencies are
+proportional to the Laplace–Beltrami eigenvalues, and displacement weights
+`sqrt(e_i) lambda_1/lambda_i` make modal energy proportional to each exponent.
+
+This is a simplified thin-metal interpretation, not full curved-shell elasticity:
+stretching, tangential motion, curvature coupling, supports, and physical material
+calibration are absent. Visual frequencies are slowed; audio keeps its existing
+equal-tempered tuning. Single modes show stationary nodal lines; mixtures show
+moving zero contours, not simulated sand. See [model and reproduction notes](web/data/modes/README.txt).
+
+Regeneration optionally requires Python with `scripts/requirements-modes.txt`;
+run `python scripts/solve_modes.py --check` in that environment. The shipped data
+has passed mesh refinement (maximum eigenvalue change 0.64%) and an analytical
+sphere check (0.71% maximum error). Normal development and deployment use the
+bundled data and need only Node.js.
+
 ## Deployment
 
 Use the existing `application_server` SSH host. See [deployment instructions](deploy/README.md).
@@ -139,6 +171,10 @@ database, process manager, or Python environment is needed.
 - `web/audio.js`: persistent Web Audio voices, attack/release, bounded output.
 - `web/app.js`: keyboard, pointer, accessibility, graph, and UI integration.
 - `web/song.js`: ten-song library, spectra, and audio-clock transport.
+- `web/modes.js`: decoding and energy-weighted mixing of surface modes.
+- `web/plate-modes.js`, `web/plate-display.js`: square-plate basis and all three 2D readouts.
+- `web/cube-view.js`: WebGL2 rendering, rotation, motion, and PNG export.
+- `scripts/solve_modes.py`: rounded geometry, FEM eigenproblem, and numerical checks.
 - `web/music/catalog.js`: bundled note events, generated offline; no runtime MIDI parser.
 - `music-sources/`: original public-domain score/MIDI downloads and arrangement manifest.
 - `scripts/import-music.mjs`: dependency-free, offline score importer; regenerate with

@@ -24,12 +24,18 @@
         <p>Every key, a prime. Every prime, a color.<br> Hold a few together. See what adds up.</p>
       </div>
 
-      <section class="instrument" aria-label="Light instrument">
-        <div class="instrument-top"><span><span class="status-dot" id="status-dot"></span><span id="status">LOADING CIE DATA</span></span><span>CIE 1931 · 2° OBSERVER</span></div>
+      <section class="instrument" aria-label="Primeboard instrument">
+        <div class="instrument-top"><span><span class="status-dot" id="status-dot"></span><span id="status">LOADING CIE DATA</span></span><span id="model-label">ROUNDED-CUBE SURFACE MODES</span></div>
+        <div class="display-choices" role="group" aria-label="Visualization"><span class="section-label">VISUALIZATION</span><div class="display-buttons"><button id="view-light" type="button" aria-pressed="false">Light</button><button id="view-modes" type="button" aria-pressed="false">Eigenmodes</button><button id="view-cube" type="button" aria-pressed="true">Rounded cube</button></div><span class="view-hint">Same keys. Three ways to see them.</span></div>
         <div class="visual-grid">
-          <div class="light-screen" id="light-screen">
-            <div class="screen-top"><span>MIXED LIGHT</span><span id="color-hex">#000000</span></div>
-            <div class="light-field" id="light-field" aria-hidden="true"><div class="light-orb" id="light-orb"></div></div>
+          <div class="light-screen modes-active" id="light-screen">
+            <div class="screen-top"><span>MIXED LIGHT</span><span class="mixed-color" title="Computed mixed-light color"><span id="color-chip" aria-hidden="true"></span><span id="color-hex">#000000</span></span></div>
+            <div class="light-field" id="light-field" aria-hidden="true" hidden><div class="light-orb" id="light-orb"></div></div>
+            <div id="modes-view">
+              <div class="surface-heading"><span>ROUNDED CUBE</span><span>THIN METAL SURFACE</span></div>
+              <div class="cube-stage"><canvas id="cube" tabindex="0" role="img" aria-label="Rounded metal cube with surface vibration patterns" aria-describedby="cube-help mode-summary"></canvas><p id="mode-message" role="status">Loading the rounded cube…</p></div>
+              <div class="cube-tools"><span id="cube-help">Drag to turn · arrow keys when focused</span><div><button id="mode-pause" type="button" aria-pressed="false" data-mode-control disabled>Pause motion</button><button id="mode-reset" type="button" data-mode-control disabled>Reset view</button><button id="mode-save" type="button" data-mode-control disabled>Save image</button></div></div>
+            </div>
             <div class="product-area">
               <p class="number-label">YOUR NUMBER</p>
               <output id="product" aria-label="Exact prime product">1</output>
@@ -37,7 +43,12 @@
             </div>
             <div class="screen-bottom"><span id="mixture-label">Press a key to begin</span><button id="copy" class="text-button" type="button" disabled>Copy number <span aria-hidden="true">↗</span></button></div>
           </div>
-          <aside class="spectrum-panel" aria-label="Spectrum and color measurements">
+          <section class="plate-screen" id="plate-screen" hidden aria-label="Eigenmode visualization">
+            <div class="screen-top"><span id="plate-screen-title">COLORED NODES</span><span>SQUARE PLATE</span></div>
+            <div class="plate-wrap"><canvas id="plate-canvas" width="256" height="256" role="img" aria-label="Silent square plate. Play a key to see its mode."></canvas><p id="plate-empty">Press a key to shape the plate.</p></div>
+            <div class="plate-legend" id="plate-legend">Each color traces one mode’s nodal lines.</div>
+          </section>
+          <aside class="spectrum-panel" id="spectrum-panel" aria-label="Spectrum and color measurements">
             <div class="panel-heading"><span>THE SPECTRUM</span><span id="line-count">0 LINES</span></div>
             <p class="small-description">Separate frequencies. One perception.</p>
             <svg id="spectrum" viewBox="0 0 320 140" role="img" aria-label="No spectral lines active"><g id="spectrum-grid"></g><g id="spectrum-lines"></g><text id="spectrum-max" x="312" y="10" text-anchor="end">4 power units</text><text x="8" y="135">428 THz</text><text x="312" y="135" text-anchor="end">749 THz</text></svg>
@@ -45,6 +56,23 @@
             <div class="axis-labels"><span>RED / LOW FREQUENCY</span><span>VIOLET / HIGH</span></div>
             <dl class="readouts"><div><dt>Relative luminance Y</dt><dd id="luminance">0.0000</dd></div><div><dt>Chromaticity x, y</dt><dd id="chromaticity">—</dd></div><div><dt>Total power units</dt><dd id="power">0</dd></div></dl>
             <p class="gamut-note" id="gamut-note">sRGB preview · exposure compressed</p>
+            <div class="mode-panel" id="mode-panel">
+              <div class="panel-heading"><span>SURFACE MODES</span><span>01—26</span></div>
+              <p id="mode-summary">One key, one pattern.</p>
+              <label for="mode-select">Inspect a mode</label><select id="mode-select" data-mode-control disabled><option value="">Play a key or choose…</option></select>
+              <p class="mode-note">Bright lines trace the zeros. Play a chord to combine patterns.</p>
+              <a class="mode-model" href="./data/modes/README.txt">Simplified bending model ↗</a>
+            </div>
+          </aside>
+          <aside class="plate-panel" id="plate-panel" hidden aria-label="Eigenmode controls and measurements">
+            <div class="panel-heading"><span>THE MODES</span><span id="plate-count">0 ACTIVE</span></div>
+            <label for="plate-readout">Show<select id="plate-readout"><option value="nodes">Colored nodes</option><option value="strength">Vibration strength</option><option value="field">Moving field</option></select></label>
+            <p class="plate-description" id="plate-description">Overlay each note’s nodal lines in its own color. A chord keeps every pattern visible.</p>
+            <div class="plate-motion-controls" id="plate-motion-controls" hidden><button id="plate-motion" type="button" aria-pressed="false">Freeze motion</button><span>Slowed 200× · musical pitch ratios</span></div>
+            <div class="plate-presets" aria-label="Try a modal mixture"><button data-plate-preset="single" type="button" disabled>One mode</button><button data-plate-preset="pair" type="button" disabled>A pair</button><button data-plate-preset="chord" type="button" disabled>A chord</button></div>
+            <div id="active-plate-modes" class="active-plate-modes" aria-label="Active mode weights"><p>No modes active.</p></div>
+            <p class="plate-model-note">Simply supported edges · musically retuned shapes.<br><a href="./modes.txt">Model & readouts ↗</a></p>
+            <details class="prime-details"><summary>Prime encoding <span id="plate-power">0 weight units</span></summary><output id="plate-product" aria-label="Exact modal prime product">1</output><p id="plate-factorization">The empty product.</p><button id="plate-copy" class="text-button" type="button" disabled>Copy number ↗</button></details>
           </aside>
         </div>
 
@@ -66,12 +94,13 @@
         </section>
       </div>
 
-      <section class="number-explorer" aria-labelledby="explore-heading"><div><h2 id="explore-heading">What color is a number?</h2><p>Give the keyboard a product of its primes. Hear and see its factors.</p></div><form id="number-form"><label class="sr-only" for="number-input">Positive integer made from primes 2 through 101</label><input id="number-input" name="number" type="text" inputmode="numeric" autocomplete="off" placeholder="Try 30 = 2 × 3 × 5" maxlength="1600" required><button type="submit" id="load-number" disabled>Play number <span aria-hidden="true">→</span></button></form><p id="form-message" role="status"></p></section>
+      <section class="number-explorer" aria-labelledby="explore-heading"><div><h2 id="explore-heading">What does a number look like?</h2><p>Give the keyboard a product of its primes. Hear and see its factors.</p></div><form id="number-form"><label class="sr-only" for="number-input">Positive integer made from primes 2 through 101</label><input id="number-input" name="number" type="text" inputmode="numeric" autocomplete="off" placeholder="Try 30 = 2 × 3 × 5" maxlength="1600" required><button type="submit" id="load-number" disabled>Play number <span aria-hidden="true">→</span></button></form><p id="form-message" role="status"></p></section>
 
       <details id="the-math" class="math"><summary><span><span class="math-symbol">∑</span> A little math. A lot of color.</span><span class="details-hint">HOW IT WORKS <span aria-hidden="true">+</span></span></summary><div class="math-content">
         <article><h3>01 / Numbers become spectra</h3><p>Each key has a distinct prime pᵢ and a fixed wavelength λᵢ. A press starts at exponent 1; holding adds 1 at the selected interval, up to 32. Each exponent is an equal-radiant-power weight, not a photon count.</p><div class="equation">n = ∏ pᵢ<sup>eᵢ</sup><br>S<sub>λ</sub>(λ) = ∑ eᵢ δ(λ − λᵢ)</div><p>Unique factorization recovers every spectral weight. Multiplying numbers adds their spectra, within the instrument’s range. The number 1 means no light. Sustain keeps released weights; pressing again adds to them.</p></article>
         <article><h3>02 / Spectra become perception</h3><p>Light frequencies are logarithmically spaced from 700 nm red to 400 nm violet, using f = c/λ. The official CIE 1931 2° observer functions convert the sum of spectral lines to XYZ:</p><div class="equation">(X, Y, Z) = ∑ eᵢ (x̄(λᵢ), ȳ(λᵢ), z̄(λᵢ))</div><p>The 1 nm data is linearly interpolated. Mixing adds power at existing frequencies; it does not average frequencies or produce a new spectral line. Different spectra can look identical: a color alone cannot recover the number.</p></article>
         <article><h3>03 / Perception meets a screen</h3><p>XYZ is transformed to linear sRGB. Most pure spectral colors are outside a screen’s gamut. We clip negative channels, apply one shared exposure-compression scale, then apply the sRGB transfer function. The preview is an approximation; the XYZ values above remain unmodified.</p><p>Doubling every exponent doubles XYZ and preserves chromaticity. Equal power does not mean equal perceived brightness, so violet and deep red can look dim. Keycap colors are normalized as a guide.</p><p>Sound uses the same exponents as power weights, with one equal-tempered sine tone per prime, C3 to C♯5. Amplitude grows as √eᵢ, because power is proportional to amplitude squared. Tones add before output compression and limiting; these protect loud chords and do not change the encoded spectrum.</p><div class="equation">s(t) = A₀ ∑ √eᵢ sin(2πfᵢt + φᵢ)</div></article>
+        <article class="modal-math"><h3>04 / The same weights become modes</h3><p>Each prime also selects an orthonormal square-plate mode φᵢ. Its amplitude is √eᵢ, so average squared displacement grows linearly with the prime exponent. Colored nodes add drawings of the individual nodal lines; vibration strength shows their squared amplitudes; the moving field shows their signed sum.</p><div class="equation">u(x, y, t) = ∑ √eᵢ φᵢ(x, y) cos(2πfᵢt)<br>⟨u²⟩ = ½ ∑ eᵢ φᵢ(x, y)²</div><p>The spatial shapes are exact eigenfunctions of an ideal simply supported square plate. Their time frequencies are retuned to the keyboard’s musical notes and slowed 200× for the display. The strength view is mean squared displacement, not physical energy. Colored nodal overlays are not a simulation of sand. The prime number encodes weights, not phase or animation time. <a href="./modes.txt">Read the complete model ↗</a></p></article>
         <p class="sources">Data: <a href="https://cie.co.at/datatable/cie-1931-colour-matching-functions-2-degree-observer" target="_blank" rel="noreferrer">CIE (2019), DOI 10.25039/CIE.DS.xvudnb9b</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>. Unmodified data, bundled locally. Conversion: <a href="https://www.w3.org/TR/css-color-4/#color-conversion-code" target="_blank" rel="noreferrer">W3C CSS Color 4</a>. <a href="./data/README.txt">Data provenance & display formula</a>.</p>
       </div></details>
       <p id="app-message" class="app-message" role="status">Loading the color-matching functions…</p>
