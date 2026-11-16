@@ -1,8 +1,70 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { KEYS, primeProduct, validateExponents } from '../web/color.js';
-import { ODE_TO_JOY, SongPlayer, songSpectrum, songFrames } from '../web/song.js';
+import { SONGS, ODE_TO_JOY, SongPlayer, songSpectrum, songFrames } from '../web/song.js';
 import { Synth, BASE_AMPLITUDE } from '../web/audio.js';
+import { readFile } from 'node:fs/promises';
+import { generateCatalog } from '../scripts/import-music.mjs';
+
+test('ten distinct credited songs fit the instrument and finish in silence', () => {
+  assert.equal(SONGS.length, 10);
+  assert.equal(new Set(SONGS.map(song => song.id)).size, 10);
+  assert.equal(new Set(SONGS.map(song => JSON.stringify(song.notes))).size, 10);
+  for (const song of SONGS) {
+    assert.ok(song.title && song.composer && song.description && song.source.startsWith('https://'));
+    assert.ok(song.bpm > 0 && song.beats > 0 && song.beatsPerBar > 0);
+    assert.ok(song.notes.length > 20, song.title);
+    for (const note of song.notes) {
+      assert.ok(Number.isInteger(note.key) && note.key >= 0 && note.key < KEYS.length, song.title);
+      assert.ok(Number.isFinite(note.start) && Number.isFinite(note.end));
+      assert.ok(note.start >= 0 && note.start < note.end && note.end <= song.beats, song.title);
+      assert.ok(note.power === 1 || note.power === 2);
+    }
+    const frames = songFrames(song);
+    for (const { exponents } of frames) validateExponents(exponents);
+    assert.ok(frames.some(frame => frame.exponents.some(Boolean)), song.title);
+    assert.ok(frames.at(-1).exponents.every(e => e === 0), song.title);
+  }
+});
+
+test('bundled arrangements reproduce the checksum-verified score imports', async () => {
+  assert.equal(await readFile(new URL('../web/music/catalog.js', import.meta.url), 'utf8'), await generateCatalog());
+});
+
+test('recognizable melody openings retain their pitches and rhythms after adaptation', () => {
+  const lead = id => SONGS.find(song => song.id === id).notes.filter(note => note.power === 2);
+  assert.deepEqual(lead('fur-elise').slice(0, 8).map(n => n.key + 48), [73, 72, 73, 72, 73, 68, 71, 69]);
+  assert.deepEqual(lead('fur-elise').slice(0, 8).map(n => n.start), [0, .25, .5, .75, 1, 1.25, 1.5, 1.75]);
+  assert.deepEqual(lead('minuet-in-g').slice(0, 6).map(n => n.key + 48), [62, 55, 57, 59, 60, 62]);
+  assert.deepEqual(lead('ah-vous-dirai-je-maman').slice(0, 7).map(n => n.key + 48), [60, 60, 67, 67, 69, 69, 67]);
+});
+
+test('selecting another song resets playing, paused, and ended positions while preserving speed', () => {
+  for (const state of ['playing', 'paused', 'ended']) {
+    const player = new SongPlayer(ODE_TO_JOY);
+    player.setRate(1.25, 0); player.play(0); player.update(10);
+    if (state === 'paused') player.pause(10);
+    if (state === 'ended') player.update(1000);
+    for (const song of SONGS.slice(1)) {
+      player.selectSong(song);
+      assert.equal(player.state, 'idle'); assert.equal(player.beat, 0);
+      assert.equal(player.rate, 1.25); assert.equal(player.song, song);
+      assert.equal(player.beatsPerSecond, song.bpm * 1.25 / 60);
+      player.play(100); player.update(1000);
+      assert.equal(player.state, 'ended'); assert.equal(player.beat, song.beats);
+    }
+  }
+});
+
+test('bar labels follow the selected meter and pickup rather than Ode to Joy timing', () => {
+  const player = new SongPlayer(SONGS.find(s => s.id === 'old-french-song'));
+  assert.equal(player.positionLabel, 'pickup');
+  player.beat = .5; assert.equal(player.positionLabel, 'bar 1 of 16');
+  player.beat = 2.5; assert.equal(player.positionLabel, 'bar 2 of 16');
+  player.beat = player.song.beats; assert.equal(player.positionLabel, 'bar 16 of 16');
+  player.selectSong(SONGS.find(s => s.id === 'minuet-in-g'));
+  player.beat = 3; assert.equal(player.positionLabel, 'bar 2 of 16');
+});
 
 test('the complete theme fits the keyboard and ends in silence', () => {
   const song = ODE_TO_JOY;

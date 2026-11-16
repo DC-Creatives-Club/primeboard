@@ -24,13 +24,19 @@ directly. ES modules and the local CSV fetch require HTTP, rather than `file://`
 
 ## Play
 
-- **Play song** performs Beethoven's public-domain *Ode to Joy* theme on the
-  keyboard, with synchronized key highlights, colors, exact integers, and audio.
-  Pause/resume, restart, stop, and three tempos are available. Playing a key or
-  loading a number/preset takes over; leaving the window pauses the song.
-  Melody weights are 2, accompaniment weights 1; long song notes keep fixed
-  weights. The hold-intensity control continues to apply to live keys.
-  See [music provenance and arrangement notes](web/music/README.txt).
+- **Classical library**, below the keyboard and settings, offers ten public-domain
+  themes and excerpts: *Ode to Joy*, *Für Elise*, *Minuet in G*, *Eine kleine
+  Nachtmusik*, Bach's *Prelude in C major*, *Gymnopédie No. 1*, *Brahms’ Lullaby*,
+  Chopin's *Prelude in A major*, *Old French Song*, and Mozart's *Ah! vous
+  dirai-je, maman* theme. These are short arrangements for the 26-key instrument.
+  **Play song** synchronizes key highlights, colors, exact integers, and audio.
+  Pause/resume, restart, stop, and three speeds are available. Selecting a song
+  stops playback and resets its position while preserving the selected speed;
+  press Play to start it. Playing a key or loading a number/preset takes over;
+  leaving the window pauses the song. Lead/upper parts use weight 2 and supporting
+  parts use weight 1; long song notes keep fixed weights. The hold-intensity
+  control continues to apply to live keys. See
+  [music provenance and arrangement notes](web/music/README.txt).
 - Type QWERTY letters, click keys, or touch multiple keys. Drag across the keys to play.
 - Every press starts at exponent 1. Holding increases it at a configurable interval
   (default 500 ms, independent of OS key repeat), up to 32.
@@ -132,6 +138,11 @@ database, process manager, or Python environment is needed.
 - `web/instrument.js`: source-aware input ownership, holds, sustain, reset.
 - `web/audio.js`: persistent Web Audio voices, attack/release, bounded output.
 - `web/app.js`: keyboard, pointer, accessibility, graph, and UI integration.
+- `web/song.js`: ten-song library, spectra, and audio-clock transport.
+- `web/music/catalog.js`: bundled note events, generated offline; no runtime MIDI parser.
+- `music-sources/`: original public-domain score/MIDI downloads and arrangement manifest.
+- `scripts/import-music.mjs`: dependency-free, offline score importer; regenerate with
+  `node scripts/import-music.mjs`. Tests verify source checksums and generated data.
 - `web/data/`: official CIE data, metadata, attribution, and detailed model notes.
 - `tests/`: Node's built-in test runner; no test dependencies.
 

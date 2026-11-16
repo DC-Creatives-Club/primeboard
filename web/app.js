@@ -1,12 +1,12 @@
 import { KEYS, ROWS, MAX_EXPONENT, parseCMF, matchingAt, spectrumXYZ, primeProduct, decodeProduct, displayColor, chromaticity } from './color.js';
 import { Instrument } from './instrument.js';
 import { Synth } from './audio.js';
-import { ODE_TO_JOY, SongPlayer, songSpectrum, songFrames } from './song.js';
+import { SONGS, SongPlayer, songSpectrum, songFrames } from './song.js';
 
 const $ = id => document.getElementById(id);
 const instrument = new Instrument();
 const synth = new Synth();
-const player = new SongPlayer(ODE_TO_JOY);
+const player = new SongPlayer(SONGS[0]);
 const codeMap = new Map(KEYS.map(key => [key.code, key.index]));
 const svgNS = 'http://www.w3.org/2000/svg';
 let rows, keyColors, keyButtons, spectrumLines;
@@ -99,7 +99,7 @@ function render() {
   $('power').textContent = power;
   $('line-count').textContent = `${active} ${active === 1 ? 'LINE' : 'LINES'}`;
   $('gamut-note').textContent = `${color.outOfGamut ? 'Outside sRGB gamut · approximated' : 'sRGB preview'} · exposure compressed`;
-  $('status').textContent = inSong ? `${player.state === 'playing' ? 'PLAYING' : 'PAUSED'} · ODE TO JOY` : active ? (instrument.held.size ? 'PLAYING' : 'SUSTAINING') : 'READY TO PLAY';
+  $('status').textContent = inSong ? `${player.state === 'playing' ? 'PLAYING' : 'PAUSED'} · ${player.song.title.toUpperCase()}` : active ? (instrument.held.size ? 'PLAYING' : 'SUSTAINING') : 'READY TO PLAY';
   $('mixture-label').textContent = active ? `${active} ${active === 1 ? 'frequency' : 'frequencies'} · ${power} power ${power === 1 ? 'unit' : 'units'}${e.includes(MAX_EXPONENT) ? ' · hold limit 32' : ''}` : 'Press a key to begin';
   $('sustain').setAttribute('aria-pressed', String(instrument.sustain));
   $('sustain').querySelector('.button-state').textContent = instrument.sustain ? 'on' : 'off';
@@ -139,9 +139,22 @@ function renderSongControls() {
   $('song-play').textContent = songPending ? 'Starting…' : player.state === 'playing' ? 'Ⅱ Pause' : player.state === 'paused' ? '▶ Resume' : player.state === 'ended' ? '↻ Play again' : '▶ Play song';
   $('song-play').disabled = songPending;
   $('song-stop').disabled = player.state === 'idle' && !songPending;
+  $('song-progress').max = player.song.beats;
   $('song-progress').value = player.beat;
   $('song-time').textContent = `${time(player.beat)} / ${time(player.song.beats)}`;
-  $('song-status').textContent = player.state === 'playing' ? `Playing · bar ${Math.min(16, Math.floor(player.beat / 4) + 1)} of 16` : player.state === 'paused' ? 'Paused · press Resume to continue' : player.state === 'ended' ? 'Finished · play it again or try the keys' : 'Play to hear the song and watch its spectrum';
+  $('song-status').textContent = player.state === 'playing' ? `Playing · ${player.positionLabel}` : player.state === 'paused' ? 'Paused · press Resume to continue' : player.state === 'ended' ? 'Finished · play it again or try the keys' : 'Play to hear the song and watch its spectrum';
+}
+function renderSongSelection() {
+  $('song-select').value = player.song.id;
+  $('song-name').textContent = player.song.title;
+  $('song-composer').textContent = player.song.composer;
+  $('song-description').textContent = player.song.description;
+  $('song-source').href = player.song.source;
+  for (const option of $('song-tempo').options) {
+    const rate = Number(option.value);
+    option.textContent = `${Math.round(player.song.bpm * rate)} BPM`;
+  }
+  renderSongControls();
 }
 function stopSong() {
   playRequest++;
@@ -247,6 +260,14 @@ function bindInputs() {
     finally { soundPending = false; }
   });
   $('song-play').addEventListener('click', playSong);
+  $('song-select').addEventListener('change', event => {
+    const song = SONGS.find(song => song.id === event.target.value);
+    if (!song) return;
+    stopSong(); instrument.clear();
+    player.selectSong(song);
+    $('app-message').textContent = '';
+    renderSongSelection(); render();
+  });
   $('song-stop').addEventListener('click', clear);
   $('song-restart').addEventListener('click', () => { clear(); playSong(); });
   $('song-tempo').addEventListener('change', event => {
@@ -318,9 +339,15 @@ async function start() {
     const response = await fetch(new URL('./data/CIE_xyz_1931_2deg.csv', import.meta.url));
     if (!response.ok) throw new Error(`Color data request returned ${response.status}.`);
     rows = parseCMF(await response.text());
-    makeKeyboard(); makeSpectrum(); bindInputs();
+    makeKeyboard(); makeSpectrum();
+    for (const song of SONGS) {
+      const option = document.createElement('option');
+      option.value = song.id; option.textContent = `${song.title} — ${song.composer}`;
+      $('song-select').append(option);
+    }
+    bindInputs();
     document.querySelectorAll('button[disabled]').forEach(button => { button.disabled = false; });
-    $('song-tempo').disabled = false; renderSongControls();
+    $('song-tempo').disabled = false; $('song-select').disabled = false; renderSongSelection();
     $('status-dot').classList.add('ready'); $('app-message').textContent = ''; render();
   } catch (error) {
     $('status').textContent = 'COULD NOT LOAD';

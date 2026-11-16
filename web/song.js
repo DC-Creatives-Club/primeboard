@@ -1,4 +1,5 @@
 import { KEYS, MAX_EXPONENT } from './color.js';
+import { IMPORTED_SONGS } from './music/catalog.js';
 
 // Beethoven's 16-bar theme, transposed G -> C from Mutopia #528's soprano.
 // Durations are quarter-note beats. Harmony is a simple Primeboard arrangement.
@@ -27,10 +28,16 @@ melodyBars.forEach((bar, measure) => {
 });
 
 export const ODE_TO_JOY = Object.freeze({
-  title: 'Ode to Joy', composer: 'Ludwig van Beethoven', bpm: 96, beats: 64,
+  id: 'ode-to-joy', title: 'Ode to Joy', composer: 'Ludwig van Beethoven',
+  description: 'Theme in C major · melody & harmony',
+  bpm: 96, beats: 64, beatsPerBar: 4, pickupBeats: 0,
   source: 'https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=528',
   notes: Object.freeze(notes.map(note => Object.freeze(note))),
 });
+
+export const SONGS = Object.freeze([ODE_TO_JOY, ...IMPORTED_SONGS.map(song => Object.freeze({
+  ...song, notes: Object.freeze(song.notes.map(note => Object.freeze(note))),
+}))]);
 
 export function songSpectrum(song, beat) {
   const exponents = KEYS.map(() => 0);
@@ -57,6 +64,19 @@ export function songFrames(song, fromBeat = 0) {
 export class SongPlayer {
   constructor(song) { this.song = song; this.beat = 0; this.rate = 1; this.state = 'idle'; this.anchor = 0; }
   get beatsPerSecond() { return this.song.bpm * this.rate / 60; }
+  selectSong(song) {
+    this.stop();
+    this.song = song;
+    this.anchor = 0;
+    this.startBeat = 0;
+  }
+  get positionLabel() {
+    const pickup = this.song.pickupBeats || 0;
+    if (this.beat < pickup) return 'pickup';
+    const total = Math.ceil((this.song.beats - pickup) / this.song.beatsPerBar);
+    const bar = Math.min(total, Math.floor((this.beat - pickup) / this.song.beatsPerBar) + 1);
+    return `bar ${bar} of ${total}`;
+  }
   play(now) {
     if (this.state === 'ended') this.beat = 0;
     this.startBeat = this.beat;

@@ -26,12 +26,6 @@
 
       <section class="instrument" aria-label="Light instrument">
         <div class="instrument-top"><span><span class="status-dot" id="status-dot"></span><span id="status">LOADING CIE DATA</span></span><span>CIE 1931 · 2° OBSERVER</span></div>
-        <section class="song-player" aria-labelledby="song-title">
-          <div class="song-heading"><span class="section-label">PLAY A CLASSIC</span><h2 id="song-title">Ode to Joy <span>Beethoven</span></h2><p>Theme in C major · melody & harmony</p></div>
-          <div class="song-actions"><button id="song-play" type="button" disabled>▶ Play song</button><button id="song-restart" type="button" disabled>Restart</button><button id="song-stop" type="button" disabled>Stop</button><label for="song-tempo">Tempo <select id="song-tempo" disabled><option value="0.75">72 BPM</option><option value="1" selected>96 BPM</option><option value="1.25">120 BPM</option></select></label></div>
-          <div class="song-timeline"><span id="song-status">Play to hear the song and watch its spectrum</span><progress id="song-progress" max="64" value="0" aria-label="Song progress"></progress><output id="song-time">0:00 / 0:40</output></div>
-          <p class="song-note">Play enables sound. Playing a key takes over. <a href="./music/README.txt">Public-domain score & arrangement notes ↗</a></p>
-        </section>
         <div class="visual-grid">
           <div class="light-screen" id="light-screen">
             <div class="screen-top"><span>MIXED LIGHT</span><span id="color-hex">#000000</span></div>
@@ -63,6 +57,13 @@
       <div class="below-instrument">
         <section class="experiments" aria-labelledby="experiment-heading"><h2 id="experiment-heading">A few starting points<span>LOAD A MIXTURE</span></h2><div class="presets"><button data-preset="ember" type="button" disabled><span class="preset-dot ember"></span>Ember<span class="preset-formula">red + yellow</span><span aria-hidden="true">↗</span></button><button data-preset="violet" type="button" disabled><span class="preset-dot violet"></span>Afterglow<span class="preset-formula">red + blue</span><span aria-hidden="true">↗</span></button><button data-preset="daylight" type="button" disabled><span class="preset-dot daylight"></span>Full spectrum<span class="preset-formula">all 26 lines</span><span aria-hidden="true">↗</span></button></div></section>
         <section class="controls" aria-label="Instrument settings"><label for="exposure">Screen exposure <output id="exposure-value">1.0×</output><input id="exposure" type="range" min="-3" max="5" value="0" step="0.1"></label><label for="hold-speed">Hold step <output id="hold-value">0.50 s</output><input id="hold-speed" type="range" min="100" max="1500" value="500" step="50"></label><label for="volume">Sound volume <output id="volume-value">25%</output><input id="volume" type="range" min="0" max="50" value="25" step="1"></label></section>
+        <section class="song-player" aria-labelledby="song-title">
+          <div class="song-library"><label for="song-select">CLASSICAL LIBRARY <span>10 themes & excerpts</span></label><select id="song-select" disabled></select></div>
+          <div class="song-heading"><span class="section-label">PLAY A CLASSIC</span><h2 id="song-title"><span id="song-name">Ode to Joy</span> <span id="song-composer">Ludwig van Beethoven</span></h2><p id="song-description">Theme in C major · melody & harmony</p></div>
+          <div class="song-actions"><button id="song-play" type="button" disabled>▶ Play song</button><button id="song-restart" type="button" disabled>Restart</button><button id="song-stop" type="button" disabled>Stop</button><label for="song-tempo">Tempo <select id="song-tempo" disabled><option value="0.75">72 BPM</option><option value="1" selected>96 BPM</option><option value="1.25">120 BPM</option></select></label></div>
+          <div class="song-timeline"><span id="song-status">Play to hear the song and watch its spectrum</span><progress id="song-progress" max="64" value="0" aria-label="Song progress"></progress><output id="song-time">0:00 / 0:40</output></div>
+          <p class="song-note">Play enables sound. Playing a key takes over. <a id="song-source" href="https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=528" target="_blank" rel="noreferrer">Public-domain score ↗</a> <a href="./music/README.txt">Credits & arrangement notes ↗</a></p>
+        </section>
       </div>
 
       <section class="number-explorer" aria-labelledby="explore-heading"><div><h2 id="explore-heading">What color is a number?</h2><p>Give the keyboard a product of its primes. Hear and see its factors.</p></div><form id="number-form"><label class="sr-only" for="number-input">Positive integer made from primes 2 through 101</label><input id="number-input" name="number" type="text" inputmode="numeric" autocomplete="off" placeholder="Try 30 = 2 × 3 × 5" maxlength="1600" required><button type="submit" id="load-number" disabled>Play number <span aria-hidden="true">→</span></button></form><p id="form-message" role="status"></p></section>

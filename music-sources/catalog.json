@@ -1,0 +1,390 @@
+[
+  {
+    "id": "fur-elise",
+    "title": "Für Elise",
+    "composer": "Ludwig van Beethoven",
+    "description": "Opening theme · adapted for 26 keys",
+    "bpm": 60,
+    "beatsPerBar": 1.5,
+    "pickupBeats": 0.5,
+    "source": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=931",
+    "license": "Public Domain",
+    "typesetter": "Stelios Samelis",
+    "downloads": [
+      {
+        "id": 931,
+        "url": "https://www.mutopiaproject.org/ftp/BeethovenLv/WoO59/fur_Elise_WoO59/fur_Elise_WoO59.ly",
+        "file": "fur_Elise_WoO59.ly"
+      },
+      {
+        "id": 931,
+        "url": "https://www.mutopiaproject.org/ftp/BeethovenLv/WoO59/fur_Elise_WoO59/fur_Elise_WoO59.mid",
+        "file": "fur_Elise_WoO59.mid"
+      }
+    ],
+    "midi": "fur_Elise_WoO59.mid",
+    "sha256": "1c12c21c7bbf4cf163896732672648a69d497636059837abd153c71abe50215a",
+    "excerpt": {
+      "to": 12,
+      "from": 0
+    },
+    "voices": [
+      {
+        "track": 1,
+        "transpose": -3,
+        "power": 2
+      },
+      {
+        "track": 2,
+        "transpose": -3,
+        "power": 1
+      }
+    ]
+  },
+  {
+    "id": "minuet-in-g",
+    "title": "Minuet in G",
+    "composer": "Christian Petzold",
+    "description": "First section · BWV Anh. 114",
+    "bpm": 108,
+    "beatsPerBar": 3,
+    "pickupBeats": 0,
+    "source": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=75",
+    "license": "Public Domain",
+    "typesetter": "Allen Garvin",
+    "downloads": [
+      {
+        "id": 75,
+        "url": "https://www.mutopiaproject.org/ftp/BachJS/BWVAnh114/anna-magdalena-04/anna-magdalena-04.ly",
+        "file": "anna-magdalena-04.ly"
+      },
+      {
+        "id": 75,
+        "url": "https://www.mutopiaproject.org/ftp/BachJS/BWVAnh114/anna-magdalena-04/anna-magdalena-04.mid",
+        "file": "anna-magdalena-04.mid"
+      }
+    ],
+    "midi": "anna-magdalena-04.mid",
+    "sha256": "fd87a6673e18104047842a1c858d2c9d8eb9ad845d7a8fa46e3664b17642cb75",
+    "excerpt": {
+      "to": 48,
+      "from": 0
+    },
+    "voices": [
+      {
+        "track": 1,
+        "transpose": -12,
+        "power": 2
+      },
+      {
+        "track": 2,
+        "transpose": 0,
+        "power": 1
+      }
+    ]
+  },
+  {
+    "id": "eine-kleine-nachtmusik",
+    "title": "Eine kleine Nachtmusik",
+    "composer": "Wolfgang Amadeus Mozart",
+    "description": "Opening eight bars · three-part reduction",
+    "bpm": 120,
+    "beatsPerBar": 4,
+    "pickupBeats": 0,
+    "source": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=900",
+    "license": "Public Domain",
+    "typesetter": "Anonymous (gnomino)",
+    "downloads": [
+      {
+        "id": 900,
+        "url": "https://www.mutopiaproject.org/ftp/MozartWA/KV525/eine-kleine-nachtmusik-mvt1/eine-kleine-nachtmusik-mvt1-lys.zip",
+        "file": "eine-kleine-nachtmusik-mvt1-lys.zip"
+      },
+      {
+        "id": 900,
+        "url": "https://www.mutopiaproject.org/ftp/MozartWA/KV525/eine-kleine-nachtmusik-mvt1/eine-kleine-nachtmusik-mvt1.mid",
+        "file": "eine-kleine-nachtmusik-mvt1.mid"
+      }
+    ],
+    "midi": "eine-kleine-nachtmusik-mvt1.mid",
+    "sha256": "f8b6dc991df6e90e2e2e11d561ab2cf8fec47beda747c69984c3fef4b539506b",
+    "excerpt": {
+      "to": 32,
+      "from": 0
+    },
+    "voices": [
+      {
+        "track": 1,
+        "transpose": -14,
+        "power": 2
+      },
+      {
+        "track": 3,
+        "transpose": -2,
+        "power": 1
+      },
+      {
+        "track": 4,
+        "transpose": -2,
+        "power": 1
+      }
+    ]
+  },
+  {
+    "id": "prelude-in-c",
+    "title": "Prelude in C major",
+    "composer": "Johann Sebastian Bach",
+    "description": "BWV 846 · opening eight bars, transposed to E",
+    "bpm": 72,
+    "beatsPerBar": 4,
+    "pickupBeats": 0,
+    "source": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=5",
+    "license": "Public Domain",
+    "typesetter": "Tobias Erbsland",
+    "downloads": [
+      {
+        "id": 5,
+        "url": "https://www.mutopiaproject.org/ftp/BachJS/BWV846/wtk1-prelude1/wtk1-prelude1.ly",
+        "file": "wtk1-prelude1.ly"
+      },
+      {
+        "id": 5,
+        "url": "https://www.mutopiaproject.org/ftp/BachJS/BWV846/wtk1-prelude1/wtk1-prelude1.mid",
+        "file": "wtk1-prelude1.mid"
+      }
+    ],
+    "midi": "wtk1-prelude1.mid",
+    "sha256": "874e07d0479542971bfceaf420d6117da8d602d89d26eea4610e7dd1ef58bf26",
+    "excerpt": {
+      "to": 32,
+      "from": 0
+    },
+    "voices": [
+      {
+        "track": 1,
+        "transpose": -8,
+        "power": 1
+      },
+      {
+        "track": 2,
+        "transpose": -8,
+        "power": 2
+      }
+    ]
+  },
+  {
+    "id": "gymnopedie-no-1",
+    "title": "Gymnopédie No. 1",
+    "composer": "Erik Satie",
+    "description": "Opening twelve bars · adapted for 26 keys",
+    "bpm": 72,
+    "beatsPerBar": 3,
+    "pickupBeats": 0,
+    "source": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=37",
+    "license": "Public Domain",
+    "typesetter": "Evin Robertson",
+    "downloads": [
+      {
+        "id": 37,
+        "url": "https://www.mutopiaproject.org/ftp/SatieE/gymnopedie_1/gymnopedie_1.ly",
+        "file": "gymnopedie_1.ly"
+      },
+      {
+        "id": 37,
+        "url": "https://www.mutopiaproject.org/ftp/SatieE/gymnopedie_1/gymnopedie_1.mid",
+        "file": "gymnopedie_1.mid"
+      }
+    ],
+    "midi": "gymnopedie_1.mid",
+    "sha256": "09ce7337b4bf42ba12e1aa64b4c7dc7fcfa6455f1070cb12f8880a755df97384",
+    "excerpt": {
+      "to": 36,
+      "from": 0
+    },
+    "voices": [
+      {
+        "track": 1,
+        "transpose": -12,
+        "power": 2
+      },
+      {
+        "track": 2,
+        "transpose": 12,
+        "power": 1
+      }
+    ]
+  },
+  {
+    "id": "brahms-lullaby",
+    "title": "Brahms’ Lullaby",
+    "composer": "Johannes Brahms",
+    "description": "Op. 49, No. 4 · vocal theme in C major",
+    "bpm": 72,
+    "beatsPerBar": 3,
+    "pickupBeats": 1,
+    "source": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1037",
+    "license": "Public Domain",
+    "typesetter": "Shogo Mori (森 章吾)",
+    "downloads": [
+      {
+        "id": 1037,
+        "url": "https://www.mutopiaproject.org/ftp/BrahmsJ/O49/Wiegenlied/Wiegenlied-lys.zip",
+        "file": "Wiegenlied-lys.zip"
+      },
+      {
+        "id": 1037,
+        "url": "https://www.mutopiaproject.org/ftp/BrahmsJ/O49/Wiegenlied/Wiegenlied-mids.zip",
+        "file": "Wiegenlied-mids.zip"
+      }
+    ],
+    "midi": "Wiegenlied.mid",
+    "sha256": "0ca12af297a5b55228dff2428a157b2811ff3f4e88098ad4f9edce1e3964aef1",
+    "excerpt": {
+      "to": 53.5,
+      "from": 5.5
+    },
+    "voices": [
+      {
+        "track": 1,
+        "transpose": -3,
+        "power": 2
+      },
+      {
+        "track": 4,
+        "transpose": -15,
+        "power": 1
+      },
+      {
+        "track": 5,
+        "transpose": -3,
+        "power": 1
+      }
+    ]
+  },
+  {
+    "id": "prelude-op-28-no-7",
+    "title": "Prelude in A major",
+    "composer": "Frédéric Chopin",
+    "description": "Op. 28, No. 7 · adapted for 26 keys",
+    "bpm": 72,
+    "beatsPerBar": 3,
+    "pickupBeats": 1,
+    "source": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=470",
+    "license": "Public Domain",
+    "typesetter": "Magnus Lewis-Smith",
+    "downloads": [
+      {
+        "id": 470,
+        "url": "https://www.mutopiaproject.org/ftp/ChopinFF/O28/Chop-28-7/Chop-28-7-lys.zip",
+        "file": "Chop-28-7-lys.zip"
+      },
+      {
+        "id": 470,
+        "url": "https://www.mutopiaproject.org/ftp/ChopinFF/O28/Chop-28-7/Chop-28-7.mid",
+        "file": "Chop-28-7.mid"
+      }
+    ],
+    "midi": "Chop-28-7.mid",
+    "sha256": "6eed7f2185afd852f01d695e50db84cdb4c8742de1a26294dc3202569346ef36",
+    "excerpt": {
+      "to": 48,
+      "from": 0
+    },
+    "voices": [
+      {
+        "track": 1,
+        "transpose": -12,
+        "power": 2
+      },
+      {
+        "track": 2,
+        "transpose": 0,
+        "power": 1
+      }
+    ]
+  },
+  {
+    "id": "old-french-song",
+    "title": "Old French Song",
+    "composer": "Pyotr Ilyich Tchaikovsky",
+    "description": "Op. 39, No. 16 · opening theme in D minor",
+    "bpm": 80,
+    "beatsPerBar": 2,
+    "pickupBeats": 0.5,
+    "source": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=2080",
+    "license": "Public Domain",
+    "typesetter": "David McNamara",
+    "downloads": [
+      {
+        "id": 2080,
+        "url": "https://www.mutopiaproject.org/ftp/TchaikovskyPI/O39/16OldFrenchSong/16OldFrenchSong.ly",
+        "file": "16OldFrenchSong.ly"
+      },
+      {
+        "id": 2080,
+        "url": "https://www.mutopiaproject.org/ftp/TchaikovskyPI/O39/16OldFrenchSong/16OldFrenchSong.mid",
+        "file": "16OldFrenchSong.mid"
+      }
+    ],
+    "midi": "16OldFrenchSong.mid",
+    "sha256": "112c3b61dab55f58bc44d9f3522ef21b3479ffa1953097783ff8c4f10e40175d",
+    "excerpt": {
+      "to": 32.5,
+      "from": 0
+    },
+    "voices": [
+      {
+        "track": 1,
+        "transpose": -5,
+        "power": 2
+      },
+      {
+        "track": 2,
+        "transpose": -5,
+        "power": 1
+      }
+    ]
+  },
+  {
+    "id": "ah-vous-dirai-je-maman",
+    "title": "Ah! vous dirai-je, maman",
+    "composer": "Wolfgang Amadeus Mozart",
+    "description": "K. 265 · theme (Twinkle, Twinkle, Little Star)",
+    "bpm": 108,
+    "beatsPerBar": 2,
+    "pickupBeats": 0,
+    "source": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=2236",
+    "license": "Public Domain",
+    "typesetter": "Jeffrey Olson",
+    "downloads": [
+      {
+        "id": 2236,
+        "url": "https://www.mutopiaproject.org/ftp/MozartWA/KV265/guitar-duo-complete/guitar-duo-complete-lys.zip",
+        "file": "guitar-duo-complete-lys.zip"
+      },
+      {
+        "id": 2236,
+        "url": "https://www.mutopiaproject.org/ftp/MozartWA/KV265/guitar-duo-complete/guitar-duo-complete.mid",
+        "file": "guitar-duo-complete.mid"
+      }
+    ],
+    "midi": "guitar-duo-complete.mid",
+    "sha256": "f6c92ab2c25184bc848fb47b4235c27fb4616b91124aec2bd7129b63b9350969",
+    "excerpt": {
+      "to": 416,
+      "from": 368
+    },
+    "voices": [
+      {
+        "track": 17,
+        "transpose": 0,
+        "power": 2
+      },
+      {
+        "track": 18,
+        "transpose": 0,
+        "power": 1
+      }
+    ]
+  }
+]
