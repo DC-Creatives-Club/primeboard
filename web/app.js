@@ -1,3 +1,4 @@
+import { loweredPitch } from './pitch.js';
 import { updateSongButton } from './song-controls.js';
 import { FUNDAMENTAL_HZ } from './resonator.js';
 import { KEYS, ROWS, MAX_EXPONENT, parseCMF, matchingAt, spectrumXYZ, primeProduct, displayColor, chromaticity } from './color.js';
@@ -26,6 +27,8 @@ let playRequest = 0;
 let cubeView;
 let modesReady = false;
 let visualization = 'cube';
+let spherePitchOctaves = 0;
+const sphereElastic = () => visualization === 'sphere' && cubeView?.model === 'elastic';
 const surfaceView = view => view === 'cube' || view === 'sphere';
 let plateDisplay;
 const interaction = 'strike';
@@ -72,7 +75,9 @@ function keyPitch(i) {
 }
 function configureResonator() {
   const spec = visualization === 'light' ? null : visualization === 'modes' ? plateDisplay?.spec : cubeView?.spec;
-  const changed = synth.setModel(spec || null, interaction);
+  const audioSpec = loweredPitch(spec || null, sphereElastic() ? spherePitchOctaves : 0);
+  const changed = synth.setModel(audioSpec, interaction);
+  $('sphere-pitch-control').hidden = !sphereElastic();
   $('hold-speed').closest('label').hidden = visualization !== 'light';
   if (changed && player.state === 'playing') {
     player.update(synth.context.currentTime);
@@ -97,6 +102,11 @@ function updateKeyboardLabels() {
     button.querySelector('.key-frequency').textContent = surfaceView(visualization) ? keyPitch(i) : '';
     button.setAttribute('aria-label', modal ? `${key.letter}: mode ${label}, ${detail}, ${keyPitch(i)}` : `${key.letter}: prime ${key.prime}, ${key.note}`);
     button.title = modal ? `${key.letter} · mode ${label} · ${detail} · ${keyPitch(i)}` : `${key.letter} · prime ${key.prime} · ${key.note}`;
+    if (sphereElastic() && spherePitchOctaves) {
+      const audible = cubeView.spec.fundamentalHz * cubeView.spec.ratios[i] / 2 ** spherePitchOctaves;
+      const description = `${button.title} natural · audio ${audible.toFixed(0)} Hz`;
+      button.title = description; button.setAttribute('aria-label', description);
+    }
   });
 }
 function makeSpectrum() {
@@ -366,6 +376,10 @@ function bindInputs() {
   if (location.hash) requestAnimationFrame(() => revealSection(location.hash)?.scrollIntoView());
   $('view-cube').addEventListener('click', () => selectView('cube'));
   $('view-sphere').addEventListener('click', () => selectView('sphere'));
+  $('sphere-pitch').addEventListener('change', event => {
+    spherePitchOctaves = Number(event.target.value);
+    configureResonator(); updateKeyboardLabels(); render();
+  });
   for (const model of ['elastic', 'scalar']) $('cube-' + model).addEventListener('click', () => selectCubeModel(model));
   $('view-light').addEventListener('click', () => selectView('light'));
   $('view-modes').addEventListener('click', () => selectView('modes'));
