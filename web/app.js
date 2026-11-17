@@ -1,3 +1,4 @@
+import { updateSongButton } from './song-controls.js';
 import { FUNDAMENTAL_HZ } from './resonator.js';
 import { KEYS, ROWS, MAX_EXPONENT, parseCMF, matchingAt, spectrumXYZ, primeProduct, displayColor, chromaticity } from './color.js';
 import { Instrument } from './instrument.js';
@@ -264,8 +265,7 @@ function renderSongControls() {
     const seconds = Math.floor(beats / player.beatsPerSecond);
     return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   };
-  $('song-play').textContent = songPending ? 'Starting…' : player.state === 'playing' ? 'Ⅱ Pause' : player.state === 'paused' ? '▶ Resume' : player.state === 'ended' ? '↻ Play again' : '▶ Play song';
-  $('song-play').disabled = songPending;
+  updateSongButton($('song-play'), player.state, songPending);
   $('song-stop').disabled = player.state === 'idle' && !songPending;
   $('song-progress').max = player.song.beats;
   $('song-progress').value = player.beat;
@@ -307,8 +307,8 @@ function scheduleSong() {
   renderSongControls(); render();
 }
 async function playSong() {
-  if (songPending || soundPending) return;
   if (player.state === 'playing') { pauseSong(); return; }
+  if (songPending || soundPending) return;
   const request = ++playRequest;
   songPending = true; renderSongControls();
   try {
