@@ -42,8 +42,8 @@ directly. ES modules and the local CSV fetch require HTTP, rather than `file://`
   **Play song** synchronizes key highlights, colors, exact integers, and audio.
   Pause/resume, restart, stop, and three speeds are available. Selecting a song
   stops playback and resets its position while preserving the selected speed;
-  press Play to start it. Playing a key or loading a number/preset takes over;
-  leaving the window pauses the song. Lead/upper parts use weight 2 and supporting
+  press Play to start it. Playback continues across views and focus changes. Manual key and preset changes
+  wait until playback is stopped; use Pause or Stop to control the song. Lead/upper parts use weight 2 and supporting
   parts use weight 1; long song notes keep fixed weights. The hold-intensity
   control continues to apply to live keys. See
   [music provenance and arrangement notes](web/music/README.txt).
@@ -54,7 +54,7 @@ directly. ES modules and the local CSV fetch require HTTP, rather than `file://`
   Pressing a sustained key again adds 1 to its exponent.
 - **Clear** or Escape resets the mixture. Leaving the window or hiding the page
   also clears it, preventing stuck sound and unnoticed background accumulation.
-- **Sound** is off initially. Enable it to play sine tones, C3 through C♯5,
+- **Sound** is on by default and starts on the first interaction. Toggle it off to mute sine tones, C3 through C♯5,
   using browser Web Audio. Each tone's amplitude is proportional to the square
   root of its exponent, so holding a key increases its power. Chords are summed
   before a shared output compressor and soft limiter; master volume is bounded.

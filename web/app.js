@@ -9,6 +9,8 @@ import { CubeView } from './cube-view.js';
 const $ = id => document.getElementById(id);
 const instrument = new Instrument();
 const synth = new Synth();
+// Sound is opted in initially; create/resume Web Audio during a user gesture.
+synth.enabled = true;
 const player = new SongPlayer(SONGS[0]);
 const codeMap = new Map(KEYS.map(key => [key.code, key.index]));
 const svgNS = 'http://www.w3.org/2000/svg';
@@ -232,11 +234,11 @@ function refreshMotionControl() {
 }
 
 function press(index, source) {
-  takeOver();
+  if (!takeOver()) return;
   if (instrument.press(index, source, performance.now())) { showKey(index); render(); }
 }
 function release(source) { if (instrument.release(source)) render(); }
-function clear() { stopSong(); instrument.clear(); render(); }
+function clear() { instrument.clear(); render(); }
 function toggleSustain() { takeOver(); instrument.setSustain(!instrument.sustain); render(); }
 
 function refreshSoundControls() {
@@ -277,9 +279,9 @@ function stopSong() {
   player.stop(); synth.stopSequence(); renderSongControls();
 }
 function takeOver() {
-  if (player.state !== 'idle' || songPending) {
-    stopSong(); instrument.clear();
-  }
+  // Editing manual weights must not interrupt the song transport.
+  if (player.state === 'playing' || player.state === 'paused' || songPending) return false;
+  return true;
 }
 function pauseSong() {
   if (songPending) { stopSong(); return; }
@@ -301,7 +303,7 @@ async function playSong() {
   try {
     await synth.enable();
     refreshSoundControls();
-    if (request !== playRequest || document.hidden) return;
+    if (request !== playRequest) return;
     instrument.clear(); instrument.setSustain(false);
     $('form-message').textContent = ''; $('app-message').textContent = '';
     scheduleSong();
@@ -319,12 +321,30 @@ function typingTarget(target) {
 }
 
 function bindInputs() {
+  const unlockSound = async event => {
+    if (!event.isTrusted || !synth.enabled || soundPending || songPending
+        || synth.context?.state === 'running'
+        || event.target.closest?.('#sound, #song-play, #song-restart')) return;
+    soundPending = true;
+    try {
+      await synth.enable();
+      render();
+    } catch (error) {
+      synth.disable(); refreshSoundControls();
+      $('app-message').textContent = `Sound could not start: ${error.message}`;
+    } finally { soundPending = false; }
+  };
+  window.addEventListener('pointerdown', unlockSound, true);
+  window.addEventListener('keydown', unlockSound, true);
+  document.querySelectorAll('a[href="#how-to-use"], a[href="#the-math"]').forEach(link => link.addEventListener('click', () => {
+    document.querySelector(link.getAttribute('href')).open = true;
+  }));
   $('view-cube').addEventListener('click', () => selectView('cube'));
   $('view-light').addEventListener('click', () => selectView('light'));
   $('view-modes').addEventListener('click', () => selectView('modes'));
   $('mode-select').addEventListener('change', event => {
     if (event.target.value === '') return;
-    takeOver();
+    if (!takeOver()) return;
     const exponents = KEYS.map(() => 0); exponents[Number(event.target.value)] = 1;
     instrument.load(exponents); $('form-message').textContent = ''; render();
   });
@@ -369,7 +389,9 @@ function bindInputs() {
     $('keyboard').addEventListener(type, event => { pointers.delete(event.pointerId); release(`pointer-${event.pointerId}`); });
   }
   const stop = () => {
-    pointers.clear(); pauseSong(); instrument.clear(); synth.stop(); render();
+    pointers.clear(); instrument.clear();
+    if (player.state !== 'playing') synth.stop();
+    render();
   };
   window.addEventListener('blur', stop);
   document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
@@ -379,7 +401,7 @@ function bindInputs() {
   matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', event => { if (event.matches) { animatePlate = false; render(); } });
   const modalPresets = { single: [[8,2]], pair: [[4,2],[8,2]], chord: [[4,2],[8,2],[13,2]] };
   document.querySelectorAll('[data-plate-preset]').forEach(button => button.addEventListener('click', () => {
-    takeOver(); const weights = KEYS.map(() => 0);
+    if (!takeOver()) return; const weights = KEYS.map(() => 0);
     for (const [i,e] of modalPresets[button.dataset.platePreset]) weights[i] = e;
     instrument.load(weights); $('form-message').textContent = ''; render();
   }));
@@ -389,7 +411,14 @@ function bindInputs() {
     if (soundPending || songPending) return;
     soundPending = true;
     try {
-      if (synth.enabled) { pauseSong(); synth.disable(); } else await synth.enable();
+      if (synth.enabled) synth.disable();
+      else {
+        await synth.enable();
+        if (player.state === 'playing') {
+          player.update(synth.context.currentTime);
+          if (player.state === 'playing') scheduleSong();
+        }
+      }
       refreshSoundControls();
       $('app-message').textContent = '';
       render();
@@ -401,13 +430,15 @@ function bindInputs() {
   $('song-select').addEventListener('change', event => {
     const song = SONGS.find(song => song.id === event.target.value);
     if (!song) return;
+    const wasPlaying = player.state === 'playing';
     stopSong(); instrument.clear();
     player.selectSong(song);
+    if (wasPlaying) playSong();
     $('app-message').textContent = '';
     renderSongSelection(); render();
   });
-  $('song-stop').addEventListener('click', clear);
-  $('song-restart').addEventListener('click', () => { clear(); playSong(); });
+  $('song-stop').addEventListener('click', () => { stopSong(); clear(); });
+  $('song-restart').addEventListener('click', () => { stopSong(); clear(); playSong(); });
   $('song-tempo').addEventListener('change', event => {
     const playing = player.state === 'playing';
     const now = synth.context?.currentTime || 0;
@@ -444,7 +475,7 @@ function bindInputs() {
     daylight: KEYS.map(key => [key.index, 1]),
   };
   document.querySelectorAll('[data-preset]').forEach(button => button.addEventListener('click', () => {
-    takeOver();
+    if (!takeOver()) return;
     const exponents = KEYS.map(() => 0);
     for (const [i, e] of presets[button.dataset.preset]) exponents[i] = e;
     instrument.load(exponents); $('form-message').textContent = ''; render();
@@ -453,7 +484,7 @@ function bindInputs() {
     event.preventDefault();
     try {
       const exponents = decodeProduct($('number-input').value);
-      takeOver();
+      if (!takeOver()) return;
       instrument.load(exponents); render();
       $('form-message').textContent = currentNumber === '1' ? '1 is the empty product: no spectral lines, no light.' : 'Number loaded. Sustain is on; play more keys to add to it.';
       $('number-input').removeAttribute('aria-invalid');
@@ -492,7 +523,7 @@ async function start() {
       option.value = song.id; option.textContent = `${song.title} — ${song.composer}`;
       $('song-select').append(option);
     }
-    bindInputs();
+    bindInputs(); refreshSoundControls();
     document.querySelectorAll('button[disabled]:not([data-mode-control])').forEach(button => { button.disabled = false; });
     $('song-tempo').disabled = false; $('song-select').disabled = false; renderSongSelection();
     $('status-dot').classList.add('ready'); $('app-message').textContent = ''; render();

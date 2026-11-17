@@ -15,6 +15,7 @@
     <header class="masthead">
       <a class="brand" href="./" aria-label="Primeboard home"><img src="./icon.svg" width="28" height="28" alt=""><span>primeboard<span class="brand-dot">.</span></span></a>
       <span class="edition">AN INSTRUMENT FOR LIGHT</span>
+      <a class="quiet-link help-link" href="#how-to-use">How to use</a>
       <a class="quiet-link" href="#the-math">The math <span aria-hidden="true">↗</span></a>
     </header>
 
@@ -76,8 +77,8 @@
           </aside>
         </div>
 
-        <div class="keyboard-top"><div><span class="section-label">THE KEYBOARD</span><span class="key-hint">Type the letters below. Hold to build intensity.</span></div><div class="transport"><button id="sound" type="button" aria-pressed="false" disabled><span aria-hidden="true">♪</span> <span class="sound-label">Enable sound</span></button><button id="sustain" type="button" aria-pressed="false" disabled>Sustain <span class="button-state">off</span></button><button id="clear" type="button" disabled>Clear <kbd>esc</kbd></button></div></div>
-        <p id="audio-hint" class="audio-hint">Enable sound to hear the same prime-weighted spectrum as sine tones.</p>
+        <div class="keyboard-top"><div><span class="section-label">THE KEYBOARD</span><span class="key-hint">Type the letters below. Hold to build intensity.</span></div><div class="transport"><button id="sound" type="button" aria-pressed="true" disabled><span aria-hidden="true">♪</span> <span class="sound-label">Sound on</span></button><button id="sustain" type="button" aria-pressed="false" disabled>Sustain <span class="button-state">off</span></button><button id="clear" type="button" disabled>Clear <kbd>esc</kbd></button></div></div>
+        <p id="audio-hint" class="audio-hint">Sound is on. Play a key to hear its tone.</p>
         <div id="keyboard" class="keyboard" tabindex="0" aria-label="26 keys from red to violet. Type the matching QWERTY letters to play." aria-describedby="audio-hint"></div>
         <div class="keyboard-bottom"><span id="key-detail">26 primes · 700–400 nm · C3–C♯5</span><span><kbd>space</kbd> sustain <span class="hint-divider">/</span> <kbd>esc</kbd> clear</span></div>
       </section>
@@ -90,12 +91,13 @@
           <div class="song-heading"><span class="section-label">PLAY A CLASSIC</span><h2 id="song-title"><span id="song-name">Ode to Joy</span> <span id="song-composer">Ludwig van Beethoven</span></h2><p id="song-description">Theme in C major · melody & harmony</p></div>
           <div class="song-actions"><button id="song-play" type="button" disabled>▶ Play song</button><button id="song-restart" type="button" disabled>Restart</button><button id="song-stop" type="button" disabled>Stop</button><label for="song-tempo">Tempo <select id="song-tempo" disabled><option value="0.75">72 BPM</option><option value="1" selected>96 BPM</option><option value="1.25">120 BPM</option></select></label></div>
           <div class="song-timeline"><span id="song-status">Play to hear the song and watch its spectrum</span><progress id="song-progress" max="64" value="0" aria-label="Song progress"></progress><output id="song-time">0:00 / 0:40</output></div>
-          <p class="song-note">Play enables sound. Playing a key takes over. <a id="song-source" href="https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=528" target="_blank" rel="noreferrer">Public-domain score ↗</a> <a href="./music/README.txt">Credits & arrangement notes ↗</a></p>
+          <p class="song-note">Play enables sound. Playback continues across views. Use Pause or Stop to interrupt it. <a id="song-source" href="https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=528" target="_blank" rel="noreferrer">Public-domain score ↗</a> <a href="./music/README.txt">Credits & arrangement notes ↗</a></p>
         </section>
       </div>
 
       <section class="number-explorer" aria-labelledby="explore-heading"><div><h2 id="explore-heading">What does a number look like?</h2><p>Give the keyboard a product of its primes. Hear and see its factors.</p></div><form id="number-form"><label class="sr-only" for="number-input">Positive integer made from primes 2 through 101</label><input id="number-input" name="number" type="text" inputmode="numeric" autocomplete="off" placeholder="Try 30 = 2 × 3 × 5" maxlength="1600" required><button type="submit" id="load-number" disabled>Play number <span aria-hidden="true">→</span></button></form><p id="form-message" role="status"></p></section>
 
+      <details id="how-to-use" class="math"><summary>How to use</summary><div class="help-content"><ol><li>Choose Light, Eigenmodes, or Rounded cube.</li><li>Click keys or type their QWERTY letters. Hold a key to build intensity; combine keys to mix patterns.</li><li>Sound is on by default; use the Sound button to mute it. Sustain keeps released keys active; Clear or Escape resets them.</li><li>In Eigenmodes, choose Colored nodes, Vibration strength, or Moving field. Drag the rounded cube to rotate it.</li><li>Try a preset or one of the ten songs below the keyboard. Use Pause or Stop to interrupt playback.</li></ol><a href="#keyboard">Back to the keyboard ↑</a></div></details>
       <details id="the-math" class="math"><summary><span><span class="math-symbol">∑</span> A little math. A lot of color.</span><span class="details-hint">HOW IT WORKS <span aria-hidden="true">+</span></span></summary><div class="math-content">
         <article><h3>01 / Numbers become spectra</h3><p>Each key has a distinct prime pᵢ and a fixed wavelength λᵢ. A press starts at exponent 1; holding adds 1 at the selected interval, up to 32. Each exponent is an equal-radiant-power weight, not a photon count.</p><div class="equation">n = ∏ pᵢ<sup>eᵢ</sup><br>S<sub>λ</sub>(λ) = ∑ eᵢ δ(λ − λᵢ)</div><p>Unique factorization recovers every spectral weight. Multiplying numbers adds their spectra, within the instrument’s range. The number 1 means no light. Sustain keeps released weights; pressing again adds to them.</p></article>
         <article><h3>02 / Spectra become perception</h3><p>Light frequencies are logarithmically spaced from 700 nm red to 400 nm violet, using f = c/λ. The official CIE 1931 2° observer functions convert the sum of spectral lines to XYZ:</p><div class="equation">(X, Y, Z) = ∑ eᵢ (x̄(λᵢ), ȳ(λᵢ), z̄(λᵢ))</div><p>The 1 nm data is linearly interpolated. Mixing adds power at existing frequencies; it does not average frequencies or produce a new spectral line. Different spectra can look identical: a color alone cannot recover the number.</p></article>
