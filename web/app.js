@@ -1,3 +1,5 @@
+import { VideoExport, videoExtension } from './video-export.js';
+import { PerformanceRecorder, RECORDING_KEY, MAX_SECONDS, validateRecording, recordingSong } from './recording.js';
 import { loweredPitch } from './pitch.js';
 import { updateSongButton } from './song-controls.js';
 import { FUNDAMENTAL_HZ } from './resonator.js';
@@ -15,6 +17,13 @@ const synth = new Synth();
 // Sound is opted in initially; create/resume Web Audio during a user gesture.
 synth.enabled = true;
 const player = new SongPlayer(SONGS[0]);
+const recorder = new PerformanceRecorder();
+let savedRecording = null;
+let recordingNotice = '';
+let videoExport = null, exportPending = false, exportCanvas, exportUntil = 0;
+let exportURL = null;
+try { const raw=localStorage.getItem(RECORDING_KEY); if(raw) savedRecording=validateRecording(JSON.parse(raw)); }
+catch { recordingNotice='Saved recording could not be read. You can make a new take.'; }
 const codeMap = new Map(KEYS.map(key => [key.code, key.index]));
 const svgNS = 'http://www.w3.org/2000/svg';
 let rows, keyColors, keyButtons, spectrumLines;
@@ -129,7 +138,8 @@ function makeSpectrum() {
 function render() {
   const inSong = player.state === 'playing' || player.state === 'paused';
   const e = inSong ? songSpectrum(player.song, player.beat) : instrument.exponents;
-  const modal = inSong ? e : instrument.levels;
+  const modal = inSong ? songSpectrum(player.song, player.beat, true) : instrument.levels;
+  recorder.capture(performance.now(), instrument.exponents, instrument.levels);
   const shown = visualization === 'light' ? e : modal;
   const xyz = spectrumXYZ(e, rows);
   const color = displayColor(xyz, exposure);
@@ -276,11 +286,24 @@ function refreshSoundControls() {
 
 }
 function renderSongControls() {
+  renderRecordingControls();
   const time = beats => {
     const seconds = Math.floor(beats / player.beatsPerSecond);
     return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   };
+  if(player.song.id==='recording') {
+    updateSongButton($('song-play'),'idle',false);
+    $('song-play').disabled=Boolean(recorder.active);
+    $('song-stop').disabled=true;
+    $('song-tempo').disabled=true;
+    $('song-progress').value=0;
+    $('song-status').textContent='Choose Play to start the classical selection';
+    $('song-time').textContent='';
+    return;
+  }
+  $('song-tempo').disabled=Boolean(recorder.active);
   updateSongButton($('song-play'), player.state, songPending);
+  $('song-play').disabled=songPending || Boolean(recorder.active);
   $('song-stop').disabled = player.state === 'idle' && !songPending;
   $('song-progress').max = player.song.beats;
   $('song-progress').value = player.beat;
@@ -318,7 +341,7 @@ function pauseSong() {
 function scheduleSong() {
   const startAt = synth.context.currentTime + .03;
   player.play(startAt);
-  synth.scheduleSequence(songFrames(player.song, player.beat), startAt, player.beatsPerSecond);
+  synth.scheduleSequence(songFrames(player.song, player.beat, visualization !== 'light'), startAt, player.beatsPerSecond);
   renderSongControls(); render();
 }
 async function playSong() {
@@ -346,11 +369,140 @@ function typingTarget(target) {
   return Boolean(input && !['range', 'checkbox', 'radio', 'button', 'submit'].includes(input.type));
 }
 
+function renderRecordingControls() {
+  const recordingPlayback = player.song.id === 'recording';
+  $('recording-panel').hidden = !savedRecording;
+  const label=recorder.active ? '■ Stop recording' : '● Record';
+  if($('record').textContent!==label)$('record').textContent=label;
+  $('record').setAttribute('aria-pressed',String(Boolean(recorder.active)));
+  $('record-clock').hidden=!recorder.active;
+  if(recorder.active)$('record-clock').textContent=recordingTime((performance.now()-recorder.started)/1000);
+  if(savedRecording)$('recording-info').textContent=`${recordingTime(savedRecording.duration)}`;
+  updateSongButton($('recording-play'),recordingPlayback?player.state:'idle',recordingPlayback&&songPending);
+  $('recording-play').disabled=recorder.active || (recordingPlayback&&songPending);
+  $('recording-stop').disabled=!recordingPlayback || !['playing','paused'].includes(player.state);
+  $('recording-discard').disabled=recorder.active;
+  $('recording-status').textContent=recordingNotice || (recordingPlayback&&['playing','paused'].includes(player.state)?`${player.state==='playing'?'Playing':'Paused'} · ${recordingTime(player.beat)}`:'Saved in this browser. Export video to share.');
+  $('song-select').disabled=recorder.active;
+  $('song-restart').disabled=recorder.active;
+  const exporting=Boolean(videoExport)||exportPending;
+  if(videoExport)$('recording-status').textContent=`Exporting video · ${recordingTime(player.beat)} / ${recordingTime(savedRecording.duration)} — keep this tab visible.`;
+  $('recording-export').disabled=Boolean(recorder.active)||exporting;
+  $('export-cancel').hidden=!exporting;
+  for(const id of ['recording-play','recording-stop','recording-discard','recording-download'])if(exporting)$(id).disabled=true;
+  if(!exporting)$('recording-download').disabled=false;
+}
+function recordingTime(seconds) { const n=Math.floor(seconds);return `${Math.floor(n/60)}:${String(n%60).padStart(2,'0')}`; }
+function finishRecording() {
+  if(!recorder.active)return;
+  const take=recorder.finish(performance.now());
+  if(take) {
+    clearExportDownload();
+    savedRecording=take;
+    try { localStorage.setItem(RECORDING_KEY,JSON.stringify(take));recordingNotice=''; }
+    catch { recordingNotice='Browser storage is unavailable or full. Export or save this take before leaving.'; }
+  } else recordingNotice='No notes recorded. Your previous take was kept.';
+  clear(); renderSongControls();
+}
+function downloadRecording() {
+  if(!savedRecording)return;
+  const url=URL.createObjectURL(new Blob([JSON.stringify(savedRecording)],{type:'application/json'}));
+  const link=document.createElement('a');link.href=url;link.download='primeboard-performance.json';link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function clearExportDownload() {
+  if(exportURL)URL.revokeObjectURL(exportURL);
+  exportURL=null;$('export-result').hidden=true;$('export-result').removeAttribute('href');
+}
+function exportFrame() {
+  if(!exportCanvas)return;
+  const ctx=exportCanvas.getContext('2d'),w=exportCanvas.width,h=exportCanvas.height;
+  ctx.fillStyle='#101316';ctx.fillRect(0,0,w,h);
+  if(visualization==='light') {
+    const color=$('color-hex').textContent;
+    const gradient=ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,h*.55);
+    gradient.addColorStop(0,color);gradient.addColorStop(1,'#101316');
+    ctx.fillStyle=gradient;ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='white';ctx.textAlign='center';ctx.font='32px monospace';
+    ctx.fillText(currentNumber,w/2,h/2,w-80);
+  } else {
+    const source=visualization==='modes'?$('plate-canvas'):$('cube');
+    if(surfaceView(visualization))cubeView.draw();
+    const scale=Math.min((w-48)/source.width,(h-80)/source.height);
+    const sw=source.width*scale,sh=source.height*scale;
+    ctx.drawImage(source,(w-sw)/2,(h-sh)/2,sw,sh);
+  }
+  ctx.textAlign='left';ctx.fillStyle='#d6d3b8';ctx.font='16px sans-serif';
+  ctx.fillText('primeboard.',24,h-22);
+}
+function finishVideoExport() {
+  videoExport=null;exportPending=false;
+  if(cubeView)cubeView.exporting=false;
+  document.querySelector('.instrument-settings').inert=false;
+  document.querySelector('.below-instrument').inert=false;
+  $('keyboard').inert=false;
+  stopSong();clear();renderRecordingControls();
+}
+function cancelVideoExport() {
+  if(!videoExport&&!exportPending)return;
+  videoExport?.stop(true);
+  recordingNotice='Export cancelled. Your recording is still saved.';
+  finishVideoExport();
+}
+async function exportRecordingVideo() {
+  if(!savedRecording||recorder.active||videoExport||exportPending)return;
+  clearExportDownload();
+  exportPending=true;recordingNotice='Preparing video…';renderRecordingControls();
+  document.querySelector('.instrument-settings').inert=true;
+  document.querySelector('.below-instrument').inert=true;$('keyboard').inert=true;
+  try {
+    await synth.enable();
+    if(!exportPending)return;
+    stopSong();instrument.clear();plateDisplay?.reset();cubeView?.reset();
+    player.selectSong(recordingSong(savedRecording));player.rate=1;
+    exportCanvas=document.createElement('canvas');exportCanvas.width=960;exportCanvas.height=720;
+    if(cubeView)cubeView.exporting=true;
+    render();exportFrame();
+    videoExport=new VideoExport(exportCanvas,synth.master,blob=>{
+      if(exportURL)URL.revokeObjectURL(exportURL);
+      exportURL=URL.createObjectURL(blob);
+      const link=$('export-result');link.href=exportURL;link.download=`primeboard-recording.${videoExtension(blob.type)}`;link.hidden=false;
+      link.textContent=`Download video (${videoExtension(blob.type).toUpperCase()})`;
+      recordingNotice='Video ready.';finishVideoExport();
+    },error=>{recordingNotice=error.message;finishVideoExport();});
+    exportPending=false;
+    scheduleSong();exportUntil=player.anchor+savedRecording.duration+.6;
+    recordingNotice='Exporting video — keep this tab visible.';renderRecordingControls();
+  } catch(error) {recordingNotice=`Could not export video: ${error.message}`;finishVideoExport();}
+}
+
 function bindInputs() {
+  $('recording-export').addEventListener('click',exportRecordingVideo);
+  $('export-cancel').addEventListener('click',cancelVideoExport);
+  $('record').addEventListener('click',()=>{
+    if(recorder.active){finishRecording();return;}
+    if(savedRecording && !window.confirm('Replace your saved take? Choose Cancel to export it or save a replay file first.'))return;
+    stopSong(); instrument.clear(); instrument.setSustain(false);
+    recorder.start(performance.now());recordingNotice='';render();renderSongControls();
+  });
+  $('recording-download').addEventListener('click',downloadRecording);
+  $('recording-play').addEventListener('click',()=>{
+    if(!savedRecording||recorder.active)return;
+    if(player.song.id!=='recording'){stopSong();player.selectSong(recordingSong(savedRecording));player.rate=1;}
+    playSong();
+  });
+  $('recording-stop').addEventListener('click',()=>{stopSong();clear();});
+  $('recording-discard').addEventListener('click',()=>{
+    if(!window.confirm('Discard this recording? Export it or save a replay file first if you want to keep it.'))return;
+    if(player.song.id==='recording'){stopSong();player.selectSong(SONGS.find(s=>s.id===$('song-select').value)||SONGS[0]);clear();}
+    clearExportDownload();
+    savedRecording=null;try{localStorage.removeItem(RECORDING_KEY);}catch{}
+    recordingNotice='';renderSongControls();
+  });
   const unlockSound = async event => {
     if (!event.isTrusted || !synth.enabled || soundPending || songPending
         || synth.context?.state === 'running'
-        || event.target.closest?.('#sound, #song-play, #song-restart')) return;
+        || event.target.closest?.('#sound, #song-play, #song-restart, #recording-play, #recording-export')) return;
     soundPending = true;
     try {
       await synth.enable();
@@ -390,6 +542,7 @@ function bindInputs() {
   $('mode-reset').addEventListener('click', () => cubeView.resetCamera());
   $('mode-save').addEventListener('click', () => cubeView.saveImage(currentNumber));
   window.addEventListener('keydown', event => {
+    if(videoExport||exportPending)return;
     if (event.code === 'Escape') { clear(); return; }
     if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey || typingTarget(event.target)) return;
     if (event.code === 'Space' && !event.target.closest('button, summary, a')) {
@@ -425,6 +578,8 @@ function bindInputs() {
     $('keyboard').addEventListener(type, event => { pointers.delete(event.pointerId); release(`pointer-${event.pointerId}`); });
   }
   const stop = () => {
+    if(document.hidden)cancelVideoExport();
+    if(recorder.active)finishRecording();
     pointers.clear(); instrument.clear();
     if (player.state !== 'playing') synth.stop();
     render();
@@ -462,19 +617,24 @@ function bindInputs() {
     } catch (error) { $('app-message').textContent = `Sound could not start: ${error.message}`; }
     finally { soundPending = false; }
   });
-  $('song-play').addEventListener('click', playSong);
+  $('song-play').addEventListener('click', () => {
+    if(recorder.active)return;
+    if(player.song.id==='recording'){stopSong();player.selectSong(SONGS.find(s=>s.id===$('song-select').value)||SONGS[0]);player.rate=Number($('song-tempo').value);}
+    playSong();
+  });
   $('song-select').addEventListener('change', event => {
     const song = SONGS.find(song => song.id === event.target.value);
     if (!song) return;
     const wasPlaying = player.state === 'playing';
     stopSong(); instrument.clear();
     player.selectSong(song);
+    player.rate=Number($('song-tempo').value);
     if (wasPlaying) playSong();
     $('app-message').textContent = '';
     renderSongSelection(); render();
   });
   $('song-stop').addEventListener('click', () => { stopSong(); clear(); });
-  $('song-restart').addEventListener('click', () => { stopSong(); clear(); playSong(); });
+  $('song-restart').addEventListener('click', () => { if(recorder.active)return;stopSong();player.selectSong(SONGS.find(s=>s.id===$('song-select').value)||SONGS[0]); player.rate=Number($('song-tempo').value); clear(); playSong(); });
   $('song-tempo').addEventListener('change', event => {
     const playing = player.state === 'playing';
     const now = synth.context?.currentTime || 0;
@@ -509,22 +669,30 @@ function bindInputs() {
   let lastSongSpectrum = '';
   let lastLevelRender = 0;
   const animateSong = timestamp => {
+    if(recorder.active) {
+      if(timestamp-recorder.started>=MAX_SECONDS*1000)finishRecording();
+      else renderRecordingControls();
+    }
     const levelsChanged = instrument.tickContinuous(timestamp);
     if (levelsChanged && visualization !== 'light' && timestamp - lastLevelRender >= 1000 / 30) {
       lastLevelRender = timestamp; render();
     }
     if (player.state === 'playing') {
       player.update(synth.context.currentTime);
-      const spectrum = songSpectrum(player.song, player.beat).join(',');
+      const spectrum = songSpectrum(player.song, player.beat, visualization !== 'light').join(',');
       if (spectrum !== lastSongSpectrum || player.state === 'ended') {
         lastSongSpectrum = spectrum; render();
       }
       renderSongControls();
     }
-    plateDisplay?.tick(timestamp, visualization === 'modes' && animatePlate && player.state !== 'paused' && !document.hidden);
+    plateDisplay?.tick(timestamp, visualization === 'modes' && (animatePlate || Boolean(videoExport)) && player.state !== 'paused' && !document.hidden);
     if (cubeView) {
       cubeView.transportPaused = player.state === 'paused';
       cubeView.tick(timestamp);
+    }
+    if(videoExport) {
+      exportFrame();
+      if(synth.context.currentTime>=exportUntil)videoExport.stop();
     }
     requestAnimationFrame(animateSong);
   };
@@ -547,6 +715,7 @@ async function start() {
     bindInputs(); refreshSoundControls();
     document.querySelectorAll('button[disabled]:not([data-mode-control])').forEach(button => { button.disabled = false; });
     $('song-tempo').disabled = false; $('song-select').disabled = false; renderSongSelection();
+    renderRecordingControls();
     $('status-dot').classList.add('ready'); $('app-message').textContent = ''; render();
     startModes();
   } catch (error) {

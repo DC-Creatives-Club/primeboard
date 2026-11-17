@@ -171,9 +171,9 @@ export class CubeView {
   tick(milliseconds) {
     const delta = Math.min(.05, Math.max(0, (milliseconds - (this.previousTime ?? milliseconds)) / 1000));
     this.previousTime = milliseconds;
-    if (!this.ready || this.lost || !this.enabled || !this.visible || document.hidden) return;
+    if (!this.ready || this.lost || !this.enabled || (!this.visible && !this.exporting) || document.hidden) return;
     const active = this.exponents.some(Boolean) || this.bank.energy > 1e-9;
-    if (!this.paused && !this.transportPaused && active) { this.seconds += delta; this.bank.advance(delta); this.dirty = true; }
+    if ((!this.paused || this.exporting) && !this.transportPaused && active) { this.seconds += delta; this.bank.advance(delta); this.dirty = true; }
     if (!this.dirty || milliseconds - (this.lastDraw || 0) < 1000 / 60) return;
     this.draw(); this.lastDraw = milliseconds;
   }

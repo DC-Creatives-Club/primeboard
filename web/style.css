@@ -130,3 +130,7 @@ main{padding-top:20px}
 #sphere-math{scroll-margin-top:20px}
 
 .pitch-note{font:9px var(--mono);color:var(--muted)}
+
+.recording-panel{margin-top:24px}.recording-panel[hidden]{display:none}#record[aria-pressed=true]{background:#58292d;border-color:#d87e86;color:#ffe4e7}#recording-info{font:11px var(--mono);color:var(--muted);margin-bottom:0}
+
+.video-download{color:var(--accent);text-decoration:underline;font-size:12px}.recording-panel #recording-export{background:var(--accent);color:#292a20}.recording-panel [hidden]{display:none}

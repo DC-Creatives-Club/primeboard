@@ -231,3 +231,24 @@ eigen residuals, mass orthogonality, radial participation, and comparison to
 Finite mesh symmetry slightly splits ideal degeneracies; numerical modes are not
 claimed to be exact individual spherical harmonics. Damping and visual envelopes
 remain illustrative, with no fluid loading or acoustic radiation calculation.
+
+### Performance recording
+
+Record captures manual key strengths and timing, including Sustain and continuous
+modal buildup. Stop recording saves the latest nonempty take in localStorage;
+replacement and discard require confirmation. Takes are limited to ten minutes
+and finish when the page loses focus or becomes hidden. Storage failure leaves
+the take available to download in the current session.
+
+The recording panel supports Play/Pause/Resume, Stop, Export video, and Discard.
+Playback can switch visualizations without stopping. Export video replays the
+saved take with the current visualization and synthesized sound into a 960 × 720
+video, choosing MP4 or WebM according to browser support. Export takes the length
+of the recording; keep the tab visible. Hiding the tab cancels the export while
+preserving the take. Download the completed video using the link that appears.
+
+The secondary Save replay file option downloads versioned `primeboard-performance`
+JSON: timestamped integer `exponents` for Number and continuous `levels` for modal
+views, ending with a silent frame. These files preserve timing rather than rendered
+media; playback uses current model, camera, exposure, pitch, and volume settings.
+Upload is not implemented.

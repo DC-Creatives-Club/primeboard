@@ -39,7 +39,12 @@ export const SONGS = Object.freeze([ODE_TO_JOY, ...IMPORTED_SONGS.map(song => Ob
   ...song, notes: Object.freeze(song.notes.map(note => Object.freeze(note))),
 }))]);
 
-export function songSpectrum(song, beat) {
+export function songSpectrum(song, beat, modal = false) {
+  if (song.frames) {
+    let lo=0,hi=song.frames.length;
+    while(lo<hi) { const mid=(lo+hi)>>>1; if(song.frames[mid].beat<=beat)lo=mid+1;else hi=mid; }
+    return lo ? [...song.frames[lo-1][modal ? 'levels' : 'exponents']] : KEYS.map(()=>0);
+  }
   const exponents = KEYS.map(() => 0);
   for (const note of song.notes) {
     if (note.start <= beat && beat < note.end) {
@@ -50,7 +55,8 @@ export function songSpectrum(song, beat) {
 }
 
 // Aggregate simultaneous voices before sound synthesis, including unisons.
-export function songFrames(song, fromBeat = 0) {
+export function songFrames(song, fromBeat = 0, modal = false) {
+  if (song.frames) return [{beat:fromBeat,exponents:songSpectrum(song,fromBeat,modal)}, ...song.frames.filter(f=>f.beat>fromBeat).map(f=>({beat:f.beat,exponents:[...f[modal ? 'levels' : 'exponents']]}))];
   const boundaries = new Set([fromBeat, song.beats]);
   for (const note of song.notes) {
     if (note.start > fromBeat) boundaries.add(note.start);
