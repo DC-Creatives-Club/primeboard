@@ -34,7 +34,22 @@ export class Synth {
       this.limiter.connect(this.master);
       this.master.connect(this.context.destination);
     }
-    await this.context.resume();
+    const resumed = this.context.resume();
+    if (!this.resonatorNode) {
+      await this.context.audioWorklet.addModule(new URL('./resonator-worklet.js', import.meta.url));
+      this.resonatorNode = new AudioWorkletNode(this.context, 'primeboard-resonator', { outputChannelCount: [1] });
+      this.resonatorNode.connect(this.compressor);
+      if (this.model) {
+        this.resonatorNode.port.postMessage({ type: 'configure', spec: this.model, interaction: this.interaction });
+        // Preserve a short first tap made while the worklet module was loading.
+        if (this.pendingWeights?.length) {
+          const first = this.pendingWeights[0].time, now = this.context.currentTime;
+          this.resonatorNode.port.postMessage({ type: 'sequence', events: this.pendingWeights.map(event => ({ ...event, time: now + event.time - first })) });
+          this.pendingWeights = [];
+        }
+      }
+    }
+    await resumed;
     this.enabled = true;
   }
   disable() { this.enabled = false; this.stop(); }
@@ -42,8 +57,20 @@ export class Synth {
     this.volume = Math.max(0, Math.min(0.5, Number.isFinite(volume) ? volume : 0));
     if (this.context) this.master.gain.setTargetAtTime(this.volume, this.context.currentTime, 0.02);
   }
+  setModel(spec, interaction = 'drive') {
+    if (this.model === spec && this.interaction === interaction) return false;
+    this.stop();
+    this.model = spec; this.interaction = interaction;
+    if (spec) this.resonatorNode?.port.postMessage({ type: 'configure', spec, interaction });
+    return true;
+  }
   sync(exponents) {
     if (!this.enabled || !this.context) return;
+    if (this.model) {
+      if (this.resonatorNode) this.resonatorNode.port.postMessage({ type: 'weights', weights: exponents });
+      else (this.pendingWeights ??= []).push({ time: this.context.currentTime, weights: [...exponents] });
+      return;
+    }
     const now = this.context.currentTime;
     // Sum independent power-weighted tones. A compressor and final soft limiter
     // handle loud combinations after mixing, separately from the spectral model.
@@ -78,6 +105,10 @@ export class Synth {
     this.stop();
     if (!this.enabled || !this.context) return;
     const fromBeat = frames[0].beat;
+    if (this.model) {
+      this.resonatorNode.port.postMessage({ type: 'sequence', events: frames.map(frame => ({ time: startAt + (frame.beat - fromBeat) / beatsPerSecond, weights: frame.exponents })) });
+      return;
+    }
     const finish = startAt + (frames.at(-1).beat - fromBeat) / beatsPerSecond;
     KEYS.forEach((key, i) => {
       if (!frames.some(frame => frame.exponents[i])) return;
@@ -103,6 +134,8 @@ export class Synth {
     });
   }
   stopSequence() {
+    this.pendingWeights = [];
+    this.resonatorNode?.port.postMessage({ type: 'reset' });
     if (!this.context) return;
     const now = this.context.currentTime;
     for (const voice of this.sequenceVoices) {

@@ -71,3 +71,58 @@
 .help-content{font-size:13px;line-height:1.8;color:#bfc2c9;padding-bottom:20px}.help-content li{margin-bottom:8px}.help-content a{text-decoration:underline;color:var(--accent)}
 @media(max-width:720px){.masthead{height:60px;gap:14px}.brand{font-size:20px}.quiet-link{font-size:10px}.quiet-link span{margin-left:3px}.intro{margin:14px 0}.intro h1{font-size:24px}.intro>p{margin-top:7px;font-size:10px}.modes-active .cube-stage{height:210px;min-height:210px}.key{height:60px}.plate-wrap canvas{max-width:250px}}
 .key{justify-content:flex-start;padding-top:8px}.key-letter{margin-bottom:5px}.plate-keys .key-note{bottom:5px}
+
+.controls select{display:block;width:100%;margin-top:10px;padding:8px;color:var(--ink);background:#222327;border:1px solid #46474c;border-radius:5px;font:11px var(--mono)}
+
+.controls{flex-wrap:wrap}.controls label{min-width:130px}.controls select{margin-top:0}#excitation-control{flex-basis:145px}
+
+/* Optical measurements belong only to Light. */
+.modes-active .screen-top{display:none}
+.cube-panel .mode-note{line-height:1.7;margin:16px 0}
+.cube-keys .key-note{display:block;font-size:8px;letter-spacing:0;margin-top:4px}
+
+/* Keep the cube and keyboard adjacent; explanatory material follows them. */
+.visual-grid:has(.modes-active:not([hidden])){grid-template-columns:1fr}
+.cube-panel{border-left:0;border-top:1px solid var(--line)}
+.cube-keys .key{height:66px;position:relative}
+.cube-keys .key-prime{position:absolute;top:25px;left:0;right:0;text-align:center;line-height:1}
+.cube-keys .key-note{position:absolute;left:2px;right:2px;bottom:5px;margin:0;text-align:center;white-space:nowrap;font-size:clamp(5.5px,1.2vw,8px);line-height:1}
+
+main{padding-top:20px}
+#shell-math,#plate-math,#how-to-use,#the-math{scroll-margin-top:20px}
+.help-content strong{color:var(--ink)}
+
+.secondary-choices{display:flex;align-items:center;gap:16px;padding:10px 22px;border-bottom:1px solid var(--line);background:#17181c}.secondary-choices[hidden]{display:none}.secondary-choices label{font:10px var(--mono);color:var(--muted);letter-spacing:1px}.secondary-choices select{font:11px var(--mono);padding:8px 12px;color:var(--ink);background:#222327;border:1px solid #46474c;border-radius:5px}.visual-grid:has(#plate-screen:not([hidden])){grid-template-columns:1fr}#plate-panel{border-left:0;border-top:1px solid var(--line)}#scalar-math{scroll-margin-top:20px}@media(max-width:720px){.secondary-choices{padding:10px 13px;gap:12px}.secondary-choices .section-label{display:none}}
+
+/* All instrument controls share one area above the display. */
+.instrument-settings{border-bottom:1px solid var(--line);background:#191a1e}
+.instrument-settings .display-choices{border-bottom:0;padding-bottom:10px}
+.instrument-settings .secondary-choices{flex-wrap:wrap;border-bottom:0;background:transparent;padding-top:0}
+.settings-adjustments{display:flex;align-items:center;gap:24px;padding:12px 22px 16px;border-top:1px solid #ffffff08}
+.settings-adjustments .transport{flex-wrap:wrap;flex-shrink:0}
+.settings-adjustments .controls{flex:1;max-width:none;gap:20px}
+.settings-adjustments .controls label{min-width:110px;gap:8px}
+.instrument-settings .plate-motion-controls,.instrument-settings .plate-presets{margin:0}
+.cube-setting-buttons{margin-left:auto;flex-wrap:wrap}
+.cube-gesture{text-align:center;font:9px var(--mono);color:var(--muted);margin:0;padding:10px 16px 14px}
+.below-instrument{grid-template-columns:1fr}
+@media(max-width:720px){.settings-adjustments{flex-wrap:wrap;gap:16px;padding:12px 13px 15px}.settings-adjustments .controls{flex-basis:100%;gap:18px}.cube-setting-buttons{margin-left:0}.instrument-settings .display-buttons button{font-size:10px;padding:8px 9px}}
+
+.settings-adjustments{flex-direction:column;align-items:stretch;gap:16px}
+.settings-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px}
+.settings-actions .cube-setting-buttons{margin-left:0}
+.settings-actions .cube-setting-buttons[hidden]{display:none}
+.settings-actions .cube-setting-buttons button{font:10px var(--mono);padding:7px 9px}
+.settings-adjustments .controls{flex:auto;width:100%}
+
+.plate-settings-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px}.plate-settings-actions[hidden]{display:none}#free-plate-math{scroll-margin-top:20px}
+
+/* A small gap separates the display from the playable keys. */
+.keyboard{padding-top:16px}
+
+.keyboard{padding-bottom:16px}.key-frequency{display:none}.cube-keys .key{height:80px}.cube-keys .key-note{bottom:19px}.cube-keys .key-frequency{display:block;position:absolute;left:2px;right:2px;bottom:5px;text-align:center;font:8px var(--mono);color:#c6c7cf}.plate-keys:not(.cube-keys) .key-note{display:block;font-size:8px;left:2px;right:2px;text-align:center;bottom:5px}
+
+/* Reserve distinct rows for the plate mode and its frequency, including ± labels. */
+.plate-keys:not(.cube-keys) .key{height:76px}
+.plate-keys:not(.cube-keys) .key-prime{position:absolute;top:24px;bottom:23px;left:2px;right:2px;display:flex;align-items:center;justify-content:center;text-align:center;white-space:nowrap;font-size:clamp(8px,1.7vw,17px);line-height:1;letter-spacing:-.5px}
+.plate-keys:not(.cube-keys) .key-note{bottom:7px;line-height:1;white-space:nowrap;font-size:clamp(6px,1.4vw,8px)}

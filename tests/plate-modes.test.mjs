@@ -40,6 +40,7 @@ test('all three plate readouts render, share weights, freeze, and clear',()=>{
   const images=[];
   for(const readout of ['nodes','strength','field']) {
     display.setState(e,readout,1);
+    display.bank.advance(.12); display.draw();
     const image=[...display.image.data];
     assert.ok(image.some((v,i)=>i%4!==3 && v>0));
     images.push(image);
@@ -47,6 +48,6 @@ test('all three plate readouts render, share weights, freeze, and clear',()=>{
   assert.notDeepEqual(images[0],images[1]);assert.notDeepEqual(images[1],images[2]);
   display.tick(0,true);display.tick(100,true);const time=display.time;
   assert.ok(time>0);display.tick(200,false);assert.equal(display.time,time);
-  e.fill(0);display.setState(e,'nodes',1);
+  e.fill(0);display.reset();display.setState(e,'nodes',1);
   assert.ok([...display.image.data].every((v,i)=>v===(i%4===3?255:0)));
 });

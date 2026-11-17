@@ -4,6 +4,7 @@ import { KEYS, MAX_EXPONENT, validateExponents } from './color.js';
 export class Instrument {
   constructor() {
     this.exponents = Array(KEYS.length).fill(0);
+    this.levels = Array(KEYS.length).fill(0);
     this.sources = new Map();
     this.held = new Map();
     this.sustain = false;
@@ -15,7 +16,8 @@ export class Instrument {
     this.sources.set(source, index);
     if (!this.held.has(index)) {
       this.exponents[index] = Math.min(MAX_EXPONENT, this.exponents[index] + 1);
-      this.held.set(index, { next: now + this.holdMs });
+      this.levels[index] = Math.min(MAX_EXPONENT, this.levels[index] + 1);
+      this.held.set(index, { next: now + this.holdMs, last: now });
     }
     return true;
   }
@@ -25,9 +27,17 @@ export class Instrument {
     this.sources.delete(source);
     if (![...this.sources.values()].includes(index)) {
       this.held.delete(index);
-      if (!this.sustain) this.exponents[index] = 0;
+      if (!this.sustain) { this.exponents[index] = 0; this.levels[index] = 0; }
     }
     return true;
+  }
+  tickContinuous(now) {
+    let changed = false;
+    for (const [i, hold] of this.held) {
+      const next = Math.min(MAX_EXPONENT, this.levels[i] + 2 * Math.max(0, now - hold.last) / 1000);
+      changed ||= next !== this.levels[i]; this.levels[i] = next; hold.last = now;
+    }
+    return changed;
   }
   tick(now) {
     let changed = false;
@@ -48,17 +58,19 @@ export class Instrument {
   }
   setSustain(value) {
     this.sustain = value;
-    if (!value) this.exponents.forEach((_, i) => { if (!this.held.has(i)) this.exponents[i] = 0; });
+    if (!value) this.exponents.forEach((_, i) => { if (!this.held.has(i)) { this.exponents[i] = 0; this.levels[i] = 0; } });
   }
   load(exponents) {
     validateExponents(exponents);
     this.clear();
     this.sustain = true;
     this.exponents = [...exponents];
+    this.levels = [...exponents];
   }
   clear() {
     this.sources.clear();
     this.held.clear();
     this.exponents.fill(0);
+    this.levels.fill(0);
   }
 }

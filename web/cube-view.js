@@ -1,4 +1,5 @@
-import { decodeModes, mixSurface } from './modes.js';
+import { ModePulse, resonanceSpec } from './resonator.js';
+import { decodeModes, mixDynamicSurface } from './modes.js';
 
 const VERTEX = `#version 300 es
 in vec3 aPosition;
@@ -16,7 +17,7 @@ vec3 turn(vec3 p) {
   return vec3(q.x,c*q.y-s*q.z,s*q.y+c*q.z);
 }
 void main() {
-  vec3 p=turn(aPosition + aNormal*.026*clamp(aField.y,-3.,3.));
+  vec3 p=turn(aPosition);
   vNormal=turn(aNormal); vPosition=p; vField=aField.x;
   float z=p.z-4.8;
   gl_Position=vec4(p.x*2.7/uAspect,p.y*2.7,-1.020202*z-.2020202,-z);
@@ -50,6 +51,7 @@ export class CubeView {
   constructor(canvas, onError) {
     this.canvas = canvas; this.onError = onError;
     this.exponents = Array(26).fill(0);
+    this.interaction = 'strike';
     this.yaw = -.58; this.pitch = .36; this.seconds = 0;
     this.paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.dirty = true; this.visible = true; this.enabled = true;
@@ -85,7 +87,7 @@ export class CubeView {
     });
     canvas.addEventListener('webglcontextlost', event => {
       event.preventDefault(); this.lost = true;
-      this.onError('The 3D view was interrupted. Light view and the keyboard still work.');
+      this.onError('The 3D view was interrupted. Number view and the keyboard still work.');
     });
     canvas.addEventListener('webglcontextrestored', () => {
       try { this.setup(); this.ready = true; this.lost = false; this.dirty = true; this.onError(''); }
@@ -94,22 +96,38 @@ export class CubeView {
   }
 
   async load() {
-    const responses = await Promise.all([
-      fetch(new URL('./data/modes/rounded-cube.bin', import.meta.url)),
-      fetch(new URL('./data/modes/rounded-cube.json', import.meta.url)),
-    ]);
-    if (responses.some(r => !r.ok)) throw new Error('The surface modes could not load. You can still play in Light view.');
-    const [buffer, metadata] = await Promise.all([responses[0].arrayBuffer(), responses[1].json()]);
-    this.data = decodeModes(buffer, metadata);
-    this.field = new Float32Array(this.data.vertexCount * 2);
+    this.models = Object.fromEntries(await Promise.all(['elastic', 'scalar'].map(async model => {
+      const name = model === 'elastic' ? 'rounded-shell' : 'rounded-cube';
+      const responses = await Promise.all(['bin', 'json'].map(ext => fetch(new URL(`./data/modes/${name}.${ext}`, import.meta.url))));
+      if (responses.some(r => !r.ok)) throw new Error('The surface modes could not load. You can still play in Number view.');
+      const [buffer, metadata] = await Promise.all([responses[0].arrayBuffer(), responses[1].json()]);
+      return [model, decodeModes(buffer, metadata)];
+    })));
+    this.setModel('elastic');
     this.gl = this.canvas.getContext('webgl2', { alpha: true, antialias: true, preserveDrawingBuffer: true });
-    if (!this.gl) throw new Error('This browser cannot show the 3D surface. You can still play in Light view.');
+    if (!this.gl) throw new Error('This browser cannot show the 3D surface. You can still play in Number view.');
     this.setup(); this.ready = true; this.dirty = true;
     return this.data;
   }
 
+  setModel(model) {
+    this.model = model;
+    this.data = this.models[model];
+    this.spec = resonanceSpec(model === 'elastic' ? this.data.metadata.frequenciesHz : this.data.eigenvalues);
+    if (model === 'elastic') this.spec.fundamentalHz = this.data.metadata.frequenciesHz[0];
+    this.bank = new ModePulse(this.spec);
+    this.bank.setWeights(this.exponents, this.interaction);
+    this.field = new Float32Array(this.data.vertexCount * 2);
+    if (this.gl) this.setup();
+    this.dirty = true;
+  }
+
   setup() {
     const gl = this.gl;
+    for (const buffer of this.buffers || []) gl.deleteBuffer(buffer);
+    if (this.vao) gl.deleteVertexArray(this.vao);
+    if (this.program) gl.deleteProgram(this.program);
+    this.buffers = [];
     const compile = (type, source) => {
       const shader = gl.createShader(type); gl.shaderSource(shader, source); gl.compileShader(shader);
       if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error('The 3D surface shader could not start.');
@@ -123,7 +141,7 @@ export class CubeView {
     this.program = program; gl.useProgram(program);
     this.vao = gl.createVertexArray(); gl.bindVertexArray(this.vao);
     const attribute = (name, data, size, dynamic = false) => {
-      const buffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      const buffer = gl.createBuffer(); this.buffers.push(buffer); gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
       gl.bufferData(gl.ARRAY_BUFFER, data, dynamic ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW);
       const location = gl.getAttribLocation(program, name);
       gl.enableVertexAttribArray(location); gl.vertexAttribPointer(location, size, gl.FLOAT, false, 0, 0);
@@ -131,18 +149,22 @@ export class CubeView {
     };
     attribute('aPosition', this.data.positions, 3); attribute('aNormal', this.data.normals, 3);
     this.fieldBuffer = attribute('aField', this.field, 2, true);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+    const indices = gl.createBuffer(); this.buffers.push(indices);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indices);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.data.indices, gl.STATIC_DRAW);
     this.uniforms = Object.fromEntries(['uAngles', 'uAspect', 'uStrength'].map(name => [name, gl.getUniformLocation(program, name)]));
     gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.clearColor(0, 0, 0, 0);
   }
 
   update(exponents) {
+    this.bank?.setWeights(exponents, this.interaction);
     if (this.exponents.some((value, i) => value !== exponents[i])) {
       if (!this.exponents.some(Boolean)) this.seconds = 0;
       this.exponents = [...exponents]; this.dirty = true;
     }
   }
+  reset() { this.bank?.reset(); this.dirty = true; }
+  setInteraction(value) { this.interaction = value; this.reset(); }
   setEnabled(value) { this.enabled = value; this.dirty = true; }
   resetCamera() { this.yaw = -.58; this.pitch = .36; this.dirty = true; }
   setPaused(value) { this.paused = value; this.dirty = true; }
@@ -151,9 +173,9 @@ export class CubeView {
     const delta = Math.min(.05, Math.max(0, (milliseconds - (this.previousTime ?? milliseconds)) / 1000));
     this.previousTime = milliseconds;
     if (!this.ready || this.lost || !this.enabled || !this.visible || document.hidden) return;
-    const active = this.exponents.some(Boolean);
-    if (!this.paused && !this.transportPaused && active) { this.seconds += delta; this.dirty = true; }
-    if (!this.dirty || milliseconds - (this.lastDraw || 0) < 1000 / 30) return;
+    const active = this.exponents.some(Boolean) || this.bank.energy > 1e-9;
+    if (!this.paused && !this.transportPaused && active) { this.seconds += delta; this.bank.advance(delta); this.dirty = true; }
+    if (!this.dirty || milliseconds - (this.lastDraw || 0) < 1000 / 60) return;
     this.draw(); this.lastDraw = milliseconds;
   }
 
@@ -165,13 +187,14 @@ export class CubeView {
     if (!width || !height) return;
     if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
     gl.viewport(0, 0, width, height); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    mixSurface(this.data, this.exponents, this.seconds, this.field);
+    const state = this.paused && this.bank.energy < 1e-12 ? this.bank.preview() : this.bank;
+    mixDynamicSurface(this.data, state, this.field);
     gl.useProgram(this.program); gl.bindVertexArray(this.vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.fieldBuffer); gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.field);
     gl.uniform2f(this.uniforms.uAngles, this.yaw, this.pitch);
     gl.uniform1f(this.uniforms.uAspect, width / height);
-    const power = this.exponents.reduce((sum, e) => sum + e, 0);
-    gl.uniform1f(this.uniforms.uStrength, power ? .35 + .65 * (1 - Math.exp(-Math.sqrt(power) / 2)) : 0);
+    const power = state.energy;
+    gl.uniform1f(this.uniforms.uStrength, 1 - Math.exp(-8 * Math.sqrt(power)));
     gl.drawElements(gl.TRIANGLES, this.data.indices.length, gl.UNSIGNED_INT, 0);
     this.dirty = false;
   }

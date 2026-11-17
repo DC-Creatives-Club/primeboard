@@ -1,9 +1,8 @@
 # Eigenmode views
 
-The 26 primes keep the same integer exponents, keyboard letters, optical hues,
-and musical pitches in every view. The exact number is optional in the modal
-view: open **Prime encoding** to inspect or copy it. It encodes mode weights;
-it does not encode phase or the current animation time.
+The 26 keys retain their integer weights and optical hues. Light uses musical
+pitches; modal views use the object's natural frequency ratios. The optional
+prime encoding describes inputs, not the evolving displacement or velocity.
 
 ## Spatial basis
 
@@ -42,29 +41,8 @@ sRGB channel for visibility. Weighted XYZ layers add before the existing
 gamut clipping, exposure compression and sRGB transfer. Thus the palette is
 related to the light view, but normalized layer brightness is illustrative.
 
-**Vibration strength** shows mean squared displacement, not local mechanical
-energy. With distinct musical frequencies and fixed amplitudes,
-
-    u(x,y,t) = sum sqrt(e_i) phi_i(x,y) cos(2 pi f_i t)
-    long-time mean of u² = (1/2) sum e_i phi_i(x,y)²
-
-The spatial integral is sum e_i / 2. It is bright at antinodes and dark where
-motion is small. If natural plate frequencies were used instead, equal-frequency
-degenerate modes would retain coherent cross terms; this formula would need
-those terms or an explicit incoherence assumption. Physical energy would also
-require velocities and plate-curvature terms. We make neither claim here.
-
-**Moving field** shows the signed linear sum u, with blue for positive and
-orange for negative displacement. Frequencies are the same distinct
-equal-tempered pitches as audio, slowed by a common factor of 200 for viewing.
-These are musically retuned plate shapes, not a solution of the unmodified
-plate's free-vibration equation. Relative frequency ratios are preserved;
-visual phase is illustrative, not locked to audio oscillator phase. Most
-equal-tempered chords are not exactly periodic. The animation can be frozen,
-defaults to frozen when reduced motion is requested, and stops for a paused
-song or a hidden page.
-
-For a fixed instant, nodal lines of the sum can arise from cancellation even
-where neither individual mode is zero. For a point to remain a node for all
-time under distinct nonzero frequencies, every active mode must vanish there.
-That distinction is why the three readouts look different for a chord.
+**Vibration strength** shows the squared fading mode mixture, including cross
+terms. **Mode mixture** shows the signed sum of the selected eigenmodes.
+Each press excites only its labeled mode. Amplitudes fade as exp(-5t) in real
+seconds, rather than displaying the rapid physical vibration. Holding builds the selected mode’s weight. Colored nodes also fades with the modal envelopes.
+See ./resonator.txt for the simplified interaction and sound model.

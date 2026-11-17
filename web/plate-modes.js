@@ -1,3 +1,4 @@
+import { resonanceSpec } from './resonator.js';
 import { KEYS, validateExponents } from './color.js';
 
 // An orthonormal real basis on the unit square, for a simply supported,
@@ -38,14 +39,15 @@ export function nodeStrength(mode, x, y, width = .005) {
   return Math.exp(-((distance / width) ** 2));
 }
 
-// Distinct equal-tempered frequencies make the infinite-time cross terms
-// vanish. This is mean squared displacement, NOT local mechanical energy.
+// Incoherent basis intensity helper (not the live strength renderer).
+// Coherent degenerate modes require cross terms, supplied by the dynamic field.
 export function meanSquaredDisplacement(exponents, x, y) {
   validateExponents(exponents);
   return exponents.reduce((sum, e, i) => sum + .5 * e * modeShape(MODES[i], x, y) ** 2, 0);
 }
 
-export function modalDisplacement(exponents, x, y, seconds, slowdown = 200) {
-  validateExponents(exponents);
-  return exponents.reduce((sum, e, i) => sum + Math.sqrt(e) * modeShape(MODES[i], x, y) * Math.cos(2 * Math.PI * KEYS[i].audioHz * seconds / slowdown), 0);
+export function plateResonanceSpec() {
+  const size = 33;
+  const shapes = MODES.map(mode => Float64Array.from({ length: size * size }, (_, p) => modeShape(mode, (p % size) / (size - 1), Math.floor(p / size) / (size - 1))));
+  return resonanceSpec(MODES.map(mode => mode.eigenvalue), shapes);
 }

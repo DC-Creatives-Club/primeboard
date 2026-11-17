@@ -1,0 +1,4 @@
+numpy==2.5.5
+scipy==1.18.1
+sdypy-model==0.2.0
+tqdm==4.70.1

@@ -1,4 +1,5 @@
-import { KEYS, ROWS, MAX_EXPONENT, parseCMF, matchingAt, spectrumXYZ, primeProduct, decodeProduct, displayColor, chromaticity } from './color.js';
+import { FUNDAMENTAL_HZ } from './resonator.js';
+import { KEYS, ROWS, MAX_EXPONENT, parseCMF, matchingAt, spectrumXYZ, primeProduct, displayColor, chromaticity } from './color.js';
 import { Instrument } from './instrument.js';
 import { Synth } from './audio.js';
 import { SONGS, SongPlayer, songSpectrum, songFrames } from './song.js';
@@ -25,8 +26,8 @@ let cubeView;
 let modesReady = false;
 let visualization = 'cube';
 let plateDisplay;
+const interaction = 'strike';
 let animatePlate = !matchMedia('(prefers-reduced-motion: reduce)').matches;
-const defaultDetail = () => visualization === 'modes' ? '26 square-plate modes · C3–C♯5' : visualization === 'cube' ? '26 surface modes · φ1–φ26 · C3–C♯5' : '26 primes · 700–400 nm · C3–C♯5';
 
 function normalizedColor(xyz) {
   const largest = Math.max(...xyz);
@@ -46,11 +47,7 @@ function makeKeyboard() {
       button.setAttribute('aria-pressed', 'false');
       button.setAttribute('aria-label', `${letter}: prime ${key.prime}, ${key.wavelength.toFixed(1)} nanometers, ${key.note}`);
       button.title = `${key.letter} · ${key.prime} · ${key.wavelength.toFixed(1)} nm · ${key.frequencyTHz.toFixed(1)} THz · ${key.note}`;
-      button.innerHTML = `<span class="key-letter">${letter}</span><span class="key-prime">${key.prime}</span><span class="key-note">${key.note}</span><span class="key-exponent"></span>`;
-      button.addEventListener('pointerenter', () => showKey(key.index));
-      button.addEventListener('focus', () => showKey(key.index));
-      button.addEventListener('pointerleave', () => { $('key-detail').textContent = defaultDetail(); });
-      button.addEventListener('blur', () => { $('key-detail').textContent = defaultDetail(); });
+      button.innerHTML = `<span class="key-letter">${letter}</span><span class="key-prime">${key.prime}</span><span class="key-note">${key.note}</span><span class="key-frequency"></span><span class="key-exponent"></span>`;
       // Native Enter/Space or assistive-technology click: a short momentary note.
       // Pointer clicks have already been handled by the pointer-down/up path.
       button.addEventListener('click', event => {
@@ -66,30 +63,40 @@ function makeKeyboard() {
   updateKeyboardLabels();
 }
 
+function keyPitch(i) {
+  if (visualization === 'light') return KEYS[i].note;
+  const spec = visualization === 'modes' ? plateDisplay?.spec : cubeView?.spec;
+  return spec ? `${((spec.fundamentalHz ?? FUNDAMENTAL_HZ) * spec.ratios[i]).toFixed(0)} Hz` : 'loading';
+}
+function configureResonator() {
+  const spec = visualization === 'light' ? null : visualization === 'modes' ? plateDisplay?.spec : cubeView?.spec;
+  const changed = synth.setModel(spec || null, interaction);
+  $('hold-speed').closest('label').hidden = visualization !== 'light';
+  if (changed && player.state === 'playing') {
+    player.update(synth.context.currentTime);
+    if (player.state === 'playing') scheduleSong();
+  }
+}
+const surfaceModeLabel = i => 'φ' + String(i + 1).replace(/[0-9]/g, digit => '₀₁₂₃₄₅₆₇₈₉'[Number(digit)]);
 function keyModeLabel(i) {
-  return visualization === 'modes' ? MODES[i].label : `φ${i + 1}`;
+  return visualization === 'modes' ? plateDisplay.modeLabel(i) : surfaceModeLabel(i);
 }
 function updateKeyboardLabels() {
   const modal = visualization !== 'light';
-  $('key-detail').textContent = defaultDetail();
   $('keyboard').classList.toggle('plate-keys', modal);
+  $('keyboard').classList.toggle('cube-keys', visualization === 'cube');
   $('keyboard').setAttribute('aria-label', modal ? '26 eigenmodes. Type the matching QWERTY letters to play.' : '26 primes. Type the matching QWERTY letters to play.');
   keyButtons.forEach((button, i) => {
     const key = KEYS[i], label = keyModeLabel(i);
     button.querySelector('.key-prime').textContent = modal ? label : key.prime;
-    button.querySelector('.key-note').textContent = key.note;
-    button.setAttribute('aria-label', modal ? `${key.letter}: mode ${label}, ${key.note}` : `${key.letter}: prime ${key.prime}, ${key.note}`);
-    button.title = modal ? `${key.letter} · mode ${label} · ${key.note}` : `${key.letter} · prime ${key.prime} · ${key.note}`;
+    const eigenvalue = visualization === 'cube' ? cubeView?.data?.eigenvalues[i] : null;
+    const detail = eigenvalue ? `λ = ${(cubeView.model === 'scalar' ? eigenvalue.toFixed(3) : eigenvalue.toExponential(2).replace('e+', 'e'))}` : keyPitch(i);
+    button.querySelector('.key-note').textContent = detail;
+    button.querySelector('.key-frequency').textContent = visualization === 'cube' ? keyPitch(i) : '';
+    button.setAttribute('aria-label', modal ? `${key.letter}: mode ${label}, ${detail}, ${keyPitch(i)}` : `${key.letter}: prime ${key.prime}, ${key.note}`);
+    button.title = modal ? `${key.letter} · mode ${label} · ${detail} · ${keyPitch(i)}` : `${key.letter} · prime ${key.prime} · ${key.note}`;
   });
 }
-function showKey(i) {
-  const key = KEYS[i];
-  const eigenvalue = cubeView?.data?.eigenvalues[i];
-  $('key-detail').textContent = visualization === 'light'
-    ? `${key.letter} · prime ${key.prime} · ${key.wavelength.toFixed(1)} nm · ${key.note}`
-    : `${key.letter} · mode ${keyModeLabel(i)}${visualization === 'cube' && eigenvalue ? ` · λ = ${eigenvalue.toFixed(4)}` : ''} · ${key.note}`;
-}
-
 function makeSpectrum() {
   const grid = $('spectrum-grid');
   for (const y of [16, 48, 80, 112]) {
@@ -110,6 +117,8 @@ function makeSpectrum() {
 function render() {
   const inSong = player.state === 'playing' || player.state === 'paused';
   const e = inSong ? songSpectrum(player.song, player.beat) : instrument.exponents;
+  const modal = inSong ? e : instrument.levels;
+  const shown = visualization === 'light' ? e : modal;
   const xyz = spectrumXYZ(e, rows);
   const color = displayColor(xyz, exposure);
   const xy = chromaticity(xyz);
@@ -137,77 +146,73 @@ function render() {
   $('copy').disabled = false;
   const peak = Math.max(4, ...e);
   $('spectrum-max').textContent = `${peak} power units`;
-  e.forEach((value, i) => {
+  shown.forEach((value, i) => {
     const button = keyButtons[i];
     button.classList.toggle('active', value > 0);
     button.setAttribute('aria-pressed', String(value > 0));
-    button.querySelector('.key-exponent').textContent = value > 0 ? `${visualization !== 'light' ? '×' : '^'}${value}` : '';
+    button.querySelector('.key-exponent').textContent = value > 0 ? visualization !== 'light' ? `×${value.toFixed(1)}` : `^${value}` : '';
     spectrumLines[i].setAttribute('opacity', value ? 1 : 0);
     spectrumLines[i].setAttribute('y2', 112 - 96 * value / peak);
   });
   $('spectrum').setAttribute('aria-label', active ? `Relative spectral power, plot maximum ${peak} units: ${e.map((v, i) => v ? `${KEYS[i].frequencyTHz.toFixed(1)} terahertz at ${v} units` : '').filter(Boolean).join('; ')}` : 'No spectral lines active');
-  if (visualization === 'modes') renderPlate(e);
-  cubeView?.update(e);
+  if (visualization === 'modes') renderPlate(modal);
+  cubeView?.update(modal);
   if (modesReady) {
     const index = active === 1 ? e.findIndex(Boolean) : -1;
-    $('mode-select').value = index < 0 ? '' : String(index);
-    $('mode-summary').textContent = index >= 0
-      ? `φ${index + 1} · λ = ${cubeView.data.eigenvalues[index].toFixed(4)}`
-      : active ? `${active} modes combined · zero contours` : 'One key, one pattern.';
-    $('cube').setAttribute('aria-label', active ? `Rounded metal cube, ${$('mode-summary').textContent}` : 'Rounded metal cube at rest. Play a key or inspect a mode.');
+    const summary = index >= 0 ? `${surfaceModeLabel(index)} · ${keyPitch(index)}` : `${active} active modes`;
+    $('cube').setAttribute('aria-label', `Rounded cube, ${summary}`);
   }
-  if (!inSong) synth.sync(e);
+  if (!inSong) synth.sync(visualization === 'light' ? e : modal);
 }
 
 function selectView(view) {
   visualization = view;
+  configureResonator();
   const cube = view === 'cube', modal = view === 'modes';
   for (const name of ['light', 'modes', 'cube']) $('view-' + name).setAttribute('aria-pressed', String(view === name));
   $('light-screen').classList.toggle('modes-active', cube);
-  $('light-screen').hidden = modal; $('spectrum-panel').hidden = modal;
-  $('plate-screen').hidden = !modal; $('plate-panel').hidden = !modal;
-  $('modes-view').hidden = !cube; $('mode-panel').hidden = !cube;
+  $('light-screen').hidden = modal; $('spectrum-panel').hidden = view !== 'light';
+  $('plate-screen').hidden = !modal;
+  $('cube-options').hidden = !cube; $('cube-actions').hidden = !cube; $('plate-options').hidden = !modal; $('plate-actions').hidden = !modal;
+  $('modes-view').hidden = !cube;
   $('light-field').hidden = cube;
-  $('model-label').textContent = cube ? 'ROUNDED-CUBE SURFACE MODES' : modal ? 'SQUARE-PLATE EIGENMODES' : 'CIE 1931 · 2° OBSERVER';
+  $('model-label').textContent = cube ? (cubeView?.model === 'scalar' ? 'SCALAR SURFACE MODES' : 'ROUNDED-CUBE SHELL MODES') : modal ? 'SQUARE-PLATE EIGENMODES' : 'CIE 1931 · 2° OBSERVER';
   cubeView?.setEnabled(cube);
-  $('key-detail').textContent = defaultDetail();
   updateKeyboardLabels(); refreshSoundControls(); render();
 }
 
 const readouts = {
-  nodes: { title: 'COLORED NODES', description: 'Overlay each note’s nodal lines in its own color. A chord keeps every pattern visible.', legend: 'Each color traces one mode’s nodal lines.' },
-  strength: { title: 'VIBRATION STRENGTH', description: 'Average squared displacement. Bright regions move more; dark regions move less. This is not mechanical energy.', legend: 'Dark: little motion · bright: strong motion' },
-  field: { title: 'MOVING FIELD', description: 'The signed sum of the modes. Watch regions reinforce or cancel as the notes oscillate.', legend: 'Blue: positive displacement · orange: negative · black: zero' },
+  nodes: { title: 'COLORED NODES', description: 'Each selected eigenmode fades in its own color. Multiple keys overlay their patterns.', legend: 'Each color traces one mode’s nodal lines.' },
+  strength: { title: 'VIBRATION STRENGTH', description: 'Squared amplitude of the fading mode mixture, including interference. This is not mechanical energy.', legend: 'Dark: near zero displacement · bright: large displacement' },
+  field: { title: 'MODE MIXTURE', description: 'The selected eigenmodes added together, fading quickly after each press.', legend: 'Blue: positive displacement · orange: negative · black: zero' },
 };
 function renderPlate(e) {
   const readout = $('plate-readout').value;
   const info = readouts[readout];
   $('plate-screen-title').textContent = info.title;
-  $('plate-description').textContent = info.description;
   $('plate-legend').textContent = info.legend;
-  $('plate-motion-controls').hidden = readout !== 'field';
+  $('plate-motion-controls').hidden = readout === 'nodes';
   $('plate-motion').textContent = animatePlate ? 'Freeze motion' : 'Animate';
   $('plate-motion').setAttribute('aria-pressed', String(!animatePlate));
   const active = e.flatMap((weight, i) => weight ? [{ i, weight }] : []);
-  $('plate-count').textContent = `${active.length} ACTIVE`;
-  $('plate-empty').hidden = active.length > 0;
-  $('active-plate-modes').replaceChildren();
-  if (!active.length) {
-    const p = document.createElement('p'); p.textContent = 'No modes active.'; $('active-plate-modes').append(p);
-  }
-  for (const { i, weight } of active) {
-    const chip = document.createElement('span'); chip.className = 'plate-chip';
-    chip.style.setProperty('--plate-color', keyColors[i]);
-    chip.textContent = `${KEYS[i].letter} · ${MODES[i].label} × ${weight}`;
-    chip.title = `${KEYS[i].note}, mode ${MODES[i].label}, modal weight ${weight}`;
-    $('active-plate-modes').append(chip);
-  }
-  const power = e.reduce((sum, v) => sum + v, 0);
-  $('plate-power').textContent = `${power} weight ${power === 1 ? 'unit' : 'units'}`;
-  $('plate-product').textContent = currentNumber;
-  $('plate-factorization').innerHTML = $('factorization').innerHTML;
+  $('plate-empty').hidden = readout !== 'nodes' || active.length > 0 || plateDisplay.bank.energy > .0001;
   plateDisplay ??= new ModeDisplay($('plate-canvas'), rows);
   plateDisplay.setState(e, readout, exposure);
+}
+
+async function startFreePlate() {
+  try {
+    await plateDisplay.loadFreePlate();
+    $('plate-free').disabled = false;
+  } catch (error) { $('app-message').textContent = error.message; }
+}
+function selectPlateModel(model) {
+  plateDisplay.setModel(model);
+  const free = model === 'free';
+  $('plate-supported').setAttribute('aria-pressed', String(!free));
+  $('plate-free').setAttribute('aria-pressed', String(free));
+  $('plate-material').textContent = free ? 'FREE ALUMINUM · 1 MM' : 'SIMPLY SUPPORTED';
+  configureResonator(); updateKeyboardLabels(); render();
 }
 
 async function startModes() {
@@ -218,16 +223,24 @@ async function startModes() {
   try {
     cubeView = new CubeView($('cube'), showError);
     cubeView.setEnabled($('view-cube').getAttribute('aria-pressed') === 'true');
-    const data = await cubeView.load();
-    for (const key of KEYS) {
-      const option = document.createElement('option'); option.value = key.index;
-      option.textContent = `φ${key.index + 1} / ${key.letter} · λ ${data.eigenvalues[key.index].toFixed(3)}`;
-      $('mode-select').append(option);
-    }
+    await cubeView.load();
     modesReady = true; showError('');
+    $('cube-elastic').disabled = false; $('cube-scalar').disabled = false;
+    cubeView.setInteraction(interaction);
+    configureResonator(); updateKeyboardLabels();
     refreshMotionControl(); render();
   } catch (error) { showError(error.message); }
 }
+function selectCubeModel(model) {
+  if (!modesReady || cubeView.model === model) return;
+  cubeView.setModel(model);
+  const scalar = model === 'scalar';
+  $('cube-elastic').setAttribute('aria-pressed', String(!scalar));
+  $('cube-scalar').setAttribute('aria-pressed', String(scalar));
+  $('cube-material').textContent = scalar ? 'LAPLACE–BELTRAMI' : 'ALUMINUM · 1 MM SHELL';
+  selectView(visualization);
+}
+
 function refreshMotionControl() {
   $('mode-pause').setAttribute('aria-pressed', String(cubeView.paused));
   $('mode-pause').textContent = cubeView.paused ? 'Resume motion' : 'Pause motion';
@@ -235,18 +248,16 @@ function refreshMotionControl() {
 
 function press(index, source) {
   if (!takeOver()) return;
-  if (instrument.press(index, source, performance.now())) { showKey(index); render(); }
+  if (instrument.press(index, source, performance.now())) { render(); }
 }
 function release(source) { if (instrument.release(source)) render(); }
-function clear() { instrument.clear(); render(); }
+function clear() { instrument.clear(); plateDisplay?.reset(); cubeView?.reset(); if (player.state !== 'playing') synth.stop(); render(); }
 function toggleSustain() { takeOver(); instrument.setSustain(!instrument.sustain); render(); }
 
 function refreshSoundControls() {
   $('sound').setAttribute('aria-pressed', String(synth.enabled));
   $('sound').querySelector('.sound-label').textContent = synth.enabled ? 'Sound on' : 'Enable sound';
-  $('audio-hint').textContent = visualization === 'modes'
-    ? (synth.enabled ? 'Sine tones are on. Hold a key to increase its mode’s strength and sound power.' : 'Enable sound to hear the musical notes behind the modes.')
-    : (synth.enabled ? 'Sine tones are on. Hold a key to increase its light and sound power.' : 'Enable sound to hear the same prime-weighted spectrum as sine tones.');
+
 }
 function renderSongControls() {
   const time = beats => {
@@ -305,7 +316,7 @@ async function playSong() {
     refreshSoundControls();
     if (request !== playRequest) return;
     instrument.clear(); instrument.setSustain(false);
-    $('form-message').textContent = ''; $('app-message').textContent = '';
+    $('app-message').textContent = '';
     scheduleSong();
   } catch (error) {
     if (request === playRequest) $('app-message').textContent = `Song could not start: ${error.message}`;
@@ -336,18 +347,23 @@ function bindInputs() {
   };
   window.addEventListener('pointerdown', unlockSound, true);
   window.addEventListener('keydown', unlockSound, true);
-  document.querySelectorAll('a[href="#how-to-use"], a[href="#the-math"]').forEach(link => link.addEventListener('click', () => {
-    document.querySelector(link.getAttribute('href')).open = true;
+  const revealSection = hash => {
+    const target = document.getElementById(hash.slice(1));
+    if (!target) return;
+    const details = target.closest('details');
+    if (details) details.open = true;
+    return target;
+  };
+  document.querySelectorAll('a[href^="#"]').forEach(link => link.addEventListener('click', () => {
+    revealSection(link.getAttribute('href'));
   }));
+  window.addEventListener('hashchange', () => revealSection(location.hash)?.scrollIntoView());
+  if (location.hash) requestAnimationFrame(() => revealSection(location.hash)?.scrollIntoView());
   $('view-cube').addEventListener('click', () => selectView('cube'));
+  for (const model of ['elastic', 'scalar']) $('cube-' + model).addEventListener('click', () => selectCubeModel(model));
   $('view-light').addEventListener('click', () => selectView('light'));
   $('view-modes').addEventListener('click', () => selectView('modes'));
-  $('mode-select').addEventListener('change', event => {
-    if (event.target.value === '') return;
-    if (!takeOver()) return;
-    const exponents = KEYS.map(() => 0); exponents[Number(event.target.value)] = 1;
-    instrument.load(exponents); $('form-message').textContent = ''; render();
-  });
+  for (const model of ['supported', 'free']) $('plate-' + model).addEventListener('click', () => selectPlateModel(model));
   $('mode-pause').addEventListener('click', () => {
     cubeView.setPaused(!cubeView.paused); refreshMotionControl();
   });
@@ -403,7 +419,7 @@ function bindInputs() {
   document.querySelectorAll('[data-plate-preset]').forEach(button => button.addEventListener('click', () => {
     if (!takeOver()) return; const weights = KEYS.map(() => 0);
     for (const [i,e] of modalPresets[button.dataset.platePreset]) weights[i] = e;
-    instrument.load(weights); $('form-message').textContent = ''; render();
+    instrument.load(weights); render();
   }));
   $('clear').addEventListener('click', clear);
   $('sustain').addEventListener('click', toggleSustain);
@@ -457,7 +473,7 @@ function bindInputs() {
   $('volume').addEventListener('input', event => {
     synth.setVolume(Number(event.target.value) / 100); $('volume-value').textContent = `${event.target.value}%`;
   });
-  for (const id of ['copy', 'plate-copy']) {
+  for (const id of ['copy']) {
     const button = $(id);
     button.addEventListener('click', async () => {
       try {
@@ -468,32 +484,15 @@ function bindInputs() {
       } catch { $('app-message').textContent = 'Copy is unavailable in this browser. Select the number on the screen to copy it.'; }
     });
   }
-  const nearest = nm => KEYS.reduce((best, key) => Math.abs(key.wavelength - nm) < Math.abs(KEYS[best].wavelength - nm) ? key.index : best, 0);
-  const presets = {
-    ember: [[nearest(630), 3], [nearest(580), 1]],
-    violet: [[nearest(630), 3], [nearest(450), 1]],
-    daylight: KEYS.map(key => [key.index, 1]),
-  };
-  document.querySelectorAll('[data-preset]').forEach(button => button.addEventListener('click', () => {
-    if (!takeOver()) return;
-    const exponents = KEYS.map(() => 0);
-    for (const [i, e] of presets[button.dataset.preset]) exponents[i] = e;
-    instrument.load(exponents); $('form-message').textContent = ''; render();
-  }));
-  $('number-form').addEventListener('submit', event => {
-    event.preventDefault();
-    try {
-      const exponents = decodeProduct($('number-input').value);
-      if (!takeOver()) return;
-      instrument.load(exponents); render();
-      $('form-message').textContent = currentNumber === '1' ? '1 is the empty product: no spectral lines, no light.' : 'Number loaded. Sustain is on; play more keys to add to it.';
-      $('number-input').removeAttribute('aria-invalid');
-    } catch (error) { $('form-message').textContent = error.message; $('number-input').setAttribute('aria-invalid', 'true'); }
-  });
   // Discrete real-time steps, independent of browser/OS key-repeat settings.
-  setInterval(() => { if (instrument.tick(performance.now())) render(); }, 25);
+  setInterval(() => { if (visualization === 'light' && instrument.tick(performance.now())) render(); }, 25);
   let lastSongSpectrum = '';
+  let lastLevelRender = 0;
   const animateSong = timestamp => {
+    const levelsChanged = instrument.tickContinuous(timestamp);
+    if (levelsChanged && visualization !== 'light' && timestamp - lastLevelRender >= 1000 / 30) {
+      lastLevelRender = timestamp; render();
+    }
     if (player.state === 'playing') {
       player.update(synth.context.currentTime);
       const spectrum = songSpectrum(player.song, player.beat).join(',');
@@ -517,6 +516,8 @@ async function start() {
     const response = await fetch(new URL('./data/CIE_xyz_1931_2deg.csv', import.meta.url));
     if (!response.ok) throw new Error(`Color data request returned ${response.status}.`);
     rows = parseCMF(await response.text());
+    plateDisplay = new ModeDisplay($('plate-canvas'), rows);
+    startFreePlate();
     makeKeyboard(); makeSpectrum();
     for (const song of SONGS) {
       const option = document.createElement('option');

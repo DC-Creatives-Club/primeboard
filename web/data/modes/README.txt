@@ -1,107 +1,96 @@
-ROUNDED CUBE / SURFACE MODES
+ROUNDED CUBE / ELASTIC SHELL MODES
 
-Play
-----
-Rounded cube shows a closed, thin metal surface with six flat faces, twelve cylindrical
-edge patches, and eight spherical corner patches. Drag to rotate; with the cube
-focused, use the arrow keys to turn and Home to reset the view. Each of the 26
-keys selects one surface mode. Hold to increase its weight, or combine keys.
-The same exponents still encode the exact integer, light spectrum, and tones.
+Physical object
+---------------
+A closed, freely suspended aluminum shell, with no supports, seams, holes,
+internal pressure, or prestress. Outside width: 0.200 m; outside rounding
+radius: 0.030 m; uniform wall thickness: 0.001 m. The midsurface is offset
+inward by 0.0005 m, giving width 0.199 m and radius 0.0295 m.
+Young's modulus: 69 GPa; Poisson ratio: 0.33; density: 2700 kg/m^3.
+These ideal isotropic properties are specified assumptions, not measurements
+of a manufactured object. Faces join cylindrical edges and spherical corners.
 
-Inspect a mode loads one prime at exponent 1 and turns Sustain on. Pause motion
-stops the visual clock; keys and song events can still change the mixture.
-Pausing a song also stops that clock. Motion starts paused when the browser
-requests reduced motion. Save image exports the current view and number as PNG.
-Switch to Light for the original mixed-light display. The small color chip and
-hex value always show the computed mixed-light color; the metal's gold/blue
-palette indicates the sign of the surface field and is decorative.
+Mechanical calculation
+----------------------
+A linear MITC4 degenerated-shell finite-element model includes in-plane
+stretching, bending, transverse shear, and their coupling through curvature.
+Each node carries three translation components and two tangent rotations.
+Rotation about the local director is redundant and omitted: no drilling
+stiffness penalty or artificial drilling mass is added.
 
-For a single mode, bright lines mark its stationary nodal set. With several
-modes, they mark the instantaneous zero-displacement contours, which can move.
-This does not simulate grains of sand or predict where sand would settle.
+The element kernel is from sdypy-model 0.2.0. Primeboard supplies a conforming
+quadrilateral mesh and globally shared analytic directors/tangent frames,
+assembles the physical five-DOF elements, and solves with SciPy:
+  K u_j = lambda_j M u_j,  lambda_j = omega_j^2,
+  f_j = sqrt(lambda_j) / (2 pi).
+M is a consistent mass matrix including rotary inertia. The shell is not
+clamped to suppress rigid motion: its six rigid-body modes are identified and
+excluded after solving. Additional elastic modes are solved so repeated
+low-frequency eigenspaces can be handled together before selecting 26 keys.
+The last retained eigenspace can be partial because the keyboard has 26 keys.
 
-Geometry and numerical solve
-----------------------------
-The undeformed surface is the boundary of the Minkowski sum
-  [-a,a]^3 + B_r, with a = 0.70, r = 0.30, outer width = 2.
-Equivalently, ||x - clamp(x,-a,a)|| = r. Units are dimensionless.
-The exact surface area is 24 a^2 + 12 pi a r + 4 pi r^2.
-Faces meet cylinders and spheres tangentially. The surface has no boundary;
-there are no free, clamped, or supported edges. The mesh is welded at all seams.
+Repeated eigenvalues reflect symmetry. Within each repeated eigenspace,
+projections of fixed geometric polynomial probes give a reproducible basis.
+An individual basis vector within a degenerate eigenspace is not unique.
 
-We solve -Delta_S phi_i = lambda_i phi_i, using piecewise-linear triangular FEM
-with cotangent stiffness K and lumped barycentric mass M:
-  K phi_i = lambda_i M phi_i.
-The browser asset has 4,802 vertices and 9,600 triangles. The uniform constant
-mode (lambda = 0) is omitted; the first 26 nonconstant modes map to QWERTY order,
-primes 2 through 101. The modes are area-average orthonormal:
-  phi_i^T M phi_j / area = delta_ij.
-Repeated eigenvalues are expected from cubic symmetry. Their basis orientation
-is chosen reproducibly by projecting coordinate monomials into each eigenspace
-and orthogonalizing. These are choices within eigenspaces, not distinct natural
-frequencies. Extra modes are solved so a complete eigenspace is available before
-selecting 26 keys. The final selected eigenspace may therefore be partial.
+Validation
+----------
+rounded-shell.json records:
+* exclusion of six near-zero rigid-body modes and the rigid-motion stiffness residual;
+* relative residuals of the elastic eigenpairs and mass orthogonality;
+* all 26 frequency changes against a finer quadrilateral mesh;
+* a simply supported square-plate benchmark against Kirchhoff-Love frequencies.
+The exporter refuses an elastic residual above 1e-5, a plate error above 2.5%,
+or a frequency change above 3% on refinement. The plate comparison includes
+small transverse-shear/rotary-inertia differences between the two theories.
+Mesh convergence is evidence of numerical resolution, not experimental validation.
 
-Validation: mesh refinement to 19,202 vertices changes these eigenvalues by at
-most 0.64%. In the spherical limit (a=0, r=1), the first 26 agree with l(l+1),
-including multiplicities, within 0.71%. The base mesh area differs from the
-analytic area by 0.060%. JSON diagnostics record the double-precision solver
-residuals. Node tests independently reassemble the exported float32 mesh's FEM
-operator and check residuals, orthogonality, topology, geometry, and checksum.
+Display and sound
+-----------------
+The asset stores the three-dimensional translation vector of every elastic
+mode. The visible scalar field is its dot product with the analytic surface
+normal. Thus the glowing lines are zeros of NORMAL displacement; tangential
+motion need not vanish there. They are not necessarily motionless material lines.
+Each vector field is normalized to unit area-average squared displacement for
+legibility. Key strengths are artistic controls, not metres or measured energies.
 
-Thin-metal interpretation
--------------------------
-This uses the requested Laplace-Beltrami basis in a SIMPLIFIED SCALAR BENDING
-model for transverse displacement u:
-  rho h u_tt + D Delta_S^2 u = 0,
-  D = E h^3 / (12 (1 - nu^2)), omega_i = sqrt(D/(rho h)) lambda_i.
-This surface-biharmonic approximation retains the computed eigenfunctions.
-It is NOT a full elastic-shell calculation. A physical curved metal shell also
-has tangential motion, stretching, and curvature coupling. Those effects can
-change both frequencies and mode shapes. Material, thickness, scale, supports,
-and excitation are not specified or fitted here, so these are not calibrated
-resonances of a particular metal object. Rigid-body shell modes are not modeled.
+The cube's geometry remains fixed. The existing continuous hold and quick-release
+fade show modal envelopes, not the rapid time-dependent vibration itself.
+Natural frequencies now set audio pitches directly; the former arbitrary
+110 Hz cube fundamental and Laplace-Beltrami frequency ratios are no longer used.
+Sound is a sum of short damped modal tones. Damping remains a chosen parameter;
+no microphone, contact-force spectrum, air-radiation or room model is solved.
+See ../../resonator.txt for interaction and sound details.
 
-The visual field is
-  u(x,t) = sum_i A_i phi_i(x) cos(omega_i t),
-  A_i = sqrt(e_i) lambda_1 / lambda_i.
-Since omega_i is proportional to lambda_i and the basis is normalized, each
-mode's total oscillator energy is proportional to e_i. This is an artistic
-mapping from exponent weights to modal energy; pressing a key is not a modeled
-physical strike or an energy-conserving excitation process.
-
-The display slows frequencies to f_i = 0.18 lambda_i/lambda_1 Hz and exaggerates
-normal displacement by 0.026, with a visual amplitude cap to avoid extreme
-geometry. Contour width and lighting are for legibility. A single mode's nodal
-lines are drawn from phi_i even at its zero-displacement instant. Mixed-mode
-contours follow u. All phases begin at zero when a new mixture starts from rest;
-phase is not encoded in the number. Pausing permits inspection of a phase.
-Audio continues to use the instrument's equal-tempered sine tones, not these
-shell frequencies. The surface animation is an additional view of the same
-weights rather than a simulation of the audible tones exciting a real shell.
-
-Reproduce
----------
-The browser needs no numerical libraries. To regenerate offline, from the repo:
-  python3 -m venv .venv-modes
-  .venv-modes/bin/pip install -r scripts/requirements-modes.txt
-  .venv-modes/bin/python scripts/solve_modes.py --check
+Reproduction
+------------
+Python 3.14, with a headless installation of the pinned kernel dependencies:
+  python3 -m venv .venv-shell
+  .venv-shell/bin/pip install --no-deps -r scripts/requirements-shell.txt
+  .venv-shell/bin/python scripts/solve_shell.py --corner 6 --refine 8
   npm test
 
-rounded-cube.bin layout (little endian): 8 bytes PCUBEV01; four uint32 values
-(vertex count, triangle count, mode count, reserved); float32 positions xyz;
-float32 analytic normals xyz; uint32 triangles; float32 lumped masses; float32
-mode values, mode-major. rounded-cube.json contains eigenvalues, geometry,
-normalization, validation diagnostics, and the binary SHA-256 checksum.
-The mesh and modes are generated by this project's MIT-licensed source.
+The solver loads the installed shell element module directly to avoid unrelated
+GUI/VTK dependencies. No modified third-party source is vendored. Intermediate
+matrices are cached under /private/tmp/primeboard-shell/<parameter-hash>/.
+The legacy rounded-cube.bin/json and solve_modes.py are retained as the previous
+scalar Laplace-Beltrami model for reference tests; the app loads rounded-shell.*.
+
+Asset layout (little-endian)
+----------------------------
+PSHELL01 (8 bytes), four uint32 values: vertex count, triangle count, mode count,
+reserved. Then float32 positions xyz (scaled to dimensionless display units),
+float32 normals xyz, uint32 triangle indices, float32 nodal drawing-area weights,
+float32 normal-displacement fields (mode-major), float32 translation vectors xyz
+(mode-major). Rendering triangles are subdivisions of the solve's quads.
+The JSON includes SI dimensions, material, eigenvalues in s^-2, frequencies in Hz,
+normalization, validation diagnostics and the binary SHA-256 checksum.
 
 References
 ----------
-Cotangent Laplacian, mass matrix, and generalized eigendecomposition:
-  https://libigl.github.io/tutorial/
-Surface discretization background (Keenan Crane, Discrete Differential Geometry):
-  https://www.cs.cmu.edu/~kmcrane/Projects/DDG/
-Sparse generalized symmetric eigensolver:
-  https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.eigsh.html
-Thin-plate flexural equation (flat-plate reference, not a curved-shell model):
-  https://academic.oup.com/qjmam/article/75/2/127/6593848
+SDyPy MITC4 shell implementation and modal-analysis documentation:
+https://sdypy-model.readthedocs.io/en/latest/tutorials/shell.html
+https://github.com/sdypy/sdypy-model
+MITC4 elements: K. J. Bathe, Finite Element Procedures (1996), shell formulations.
+General shell mechanics and curvature coupling:
+https://docu.ngsolve.org/ngs24/SaS/linear_nonlinear_shell_equ.html

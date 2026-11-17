@@ -1,0 +1,39 @@
+EIGENMODE PULSES
+
+Each key excites only its labeled mode. A new press adds a modal impulse;
+holding increases that mode’s weight up to 32. Multiple keys superpose their
+selected modes. Clear resets sound and the displayed field immediately.
+
+The visual field is a modal envelope: u(x,t) = sum A_i(t) phi_i(x).
+Each press adds sqrt(delta weight) to its amplitude; amplitudes decay as
+exp(-5 t), falling below 1% in one second and disappearing shortly afterward.
+This is a readable picture of the eigenmode mixture, not an instantaneous
+physical vibration or a slow-motion reconstruction of the sound.
+Colored nodes overlays the selected modes' nodal lines with fading brightness.
+Mode mixture shows their signed sum; Vibration strength shows its square.
+
+Audio uses damped independent oscillators at natural frequency ratios, with
+110 Hz as the plate fundamental, with plate ratios (m²+n²)/2. The cube
+uses the calculated elastic-shell frequencies in rounded-shell.json, where
+f_i = sqrt(lambda_i)/(2 pi); its fundamental is not retuned. Damping gamma_i = 4 + 1.5 sqrt(ratio_i) per second
+makes tones short. Displacement is sampled to give a smooth, zero-start attack.
+No additional surface modes or noise are excited by a single key.
+
+The cube modes now come from an MITC4 elastic-shell solve with specified
+dimensions and aluminum properties. Modal damping is still chosen, and the
+audio is not a calibrated sound-radiation model.
+Light retains its original musical tones and hold-to-build behavior.
+
+While a key is held (or Sustain retains it), its visible amplitude is sqrt(e).
+The ×e key label and Hold step control show and adjust this weight buildup.
+Release with Sustain off starts the quick fade; Clear removes it immediately.
+
+Continuous modal controls
+-------------------------
+Modal strengths are separate from integer prime exponents. Holding raises the
+strength continuously at 2 units per second, capped at 32; key labels show one
+decimal place. Visible amplitude is sqrt(strength), followed by a quick release
+fade. Light alone retains integer exponent steps. Fractional increases scale
+the existing audio mode rather than repeatedly injecting impulses.
+The rounded cube's mesh is fixed: only the surface pattern and its brightness
+change. No displacement is applied to its vertices.

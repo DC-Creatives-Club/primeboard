@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#111214">
-  <meta name="description" content="Play with primes, light, and sound. A rainbow keyboard that mixes spectral lines using the CIE 1931 color-matching functions.">
-  <title>Primeboard — play a little light</title>
+  <meta name="description" content="Explore light, plate eigenmodes, and elastic-shell vibrations with a playable keyboard.">
+  <title>Primeboard — light, modes & sound</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="./app.js"></script>
@@ -14,28 +14,28 @@
   <div class="app-shell">
     <header class="masthead">
       <a class="brand" href="./" aria-label="Primeboard home"><img src="./icon.svg" width="28" height="28" alt=""><span>primeboard<span class="brand-dot">.</span></span></a>
-      <span class="edition">AN INSTRUMENT FOR LIGHT</span>
+      <span class="edition">LIGHT · MODES · SOUND</span>
       <a class="quiet-link help-link" href="#how-to-use">How to use</a>
       <a class="quiet-link" href="#the-math">The math <span aria-hidden="true">↗</span></a>
     </header>
 
     <main>
-      <div class="intro">
-        <div><p class="eyebrow">PRIMES × SPECTRA × SOUND</p><h1>Play a little light.</h1></div>
-        <p>Every key, a prime. Every prime, a color.<br> Hold a few together. See what adds up.</p>
-      </div>
-
       <section class="instrument" aria-label="Primeboard instrument">
-        <div class="instrument-top"><span><span class="status-dot" id="status-dot"></span><span id="status">LOADING CIE DATA</span></span><span id="model-label">ROUNDED-CUBE SURFACE MODES</span></div>
-        <div class="display-choices" role="group" aria-label="Visualization"><span class="section-label">VISUALIZATION</span><div class="display-buttons"><button id="view-light" type="button" aria-pressed="false">Light</button><button id="view-modes" type="button" aria-pressed="false">Eigenmodes</button><button id="view-cube" type="button" aria-pressed="true">Rounded cube</button></div><span class="view-hint">Same keys. Three ways to see them.</span></div>
+        <div class="instrument-top"><span><span class="status-dot" id="status-dot"></span><span id="status">LOADING CIE DATA</span></span><span id="model-label">ROUNDED-CUBE SHELL MODES</span></div>
+        <section class="instrument-settings" aria-label="Instrument settings">
+        <div class="display-choices" role="group" aria-label="Visualization"><span class="section-label">VISUALIZATION</span><div class="display-buttons"><button id="view-light" type="button" aria-pressed="false">Number</button><button id="view-modes" type="button" aria-pressed="false">Flat plate</button><button id="view-cube" type="button" aria-pressed="true">Rounded cube</button></div><span class="view-hint">Same keys. Three ways to see them.</span></div>
+        <div id="cube-options" class="secondary-choices" role="group" aria-label="Cube model"><span class="section-label">MODEL</span><div class="display-buttons"><button id="cube-elastic" type="button" aria-pressed="true" disabled>Elastic shell</button><button id="cube-scalar" type="button" aria-pressed="false" disabled>Scalar surface</button></div></div>
+        <div id="plate-options" class="secondary-choices" hidden><span class="section-label">MODEL</span><div class="display-buttons"><button id="plate-supported" type="button" aria-pressed="true">Simply supported</button><button id="plate-free" type="button" aria-pressed="false" disabled>Free plate</button></div><label for="plate-readout">DISPLAY</label><select id="plate-readout"><option value="nodes">Colored nodes</option><option value="strength">Vibration strength</option><option value="field">Mode mixture</option></select></div>
+        <div class="settings-adjustments"><div class="settings-actions"><div class="transport"><button id="sound" type="button" aria-pressed="true" disabled><span aria-hidden="true">♪</span> <span class="sound-label">Sound on</span></button><button id="sustain" type="button" aria-pressed="false" disabled>Sustain <span class="button-state">off</span></button><button id="clear" type="button" disabled>Clear <kbd>esc</kbd></button></div><div id="cube-actions" class="display-buttons cube-setting-buttons"><button id="mode-pause" type="button" aria-pressed="false" data-mode-control disabled>Pause motion</button><button id="mode-reset" type="button" data-mode-control disabled>Reset view</button><button id="mode-save" type="button" data-mode-control disabled>Save image</button></div><div id="plate-actions" class="plate-settings-actions" hidden><div class="plate-motion-controls" id="plate-motion-controls" hidden><button id="plate-motion" type="button" aria-pressed="false">Freeze motion</button><span>Quick fade · modal envelopes</span></div><div class="plate-presets" aria-label="Try a modal mixture"><button data-plate-preset="single" type="button" disabled>One mode</button><button data-plate-preset="pair" type="button" disabled>A pair</button><button data-plate-preset="chord" type="button" disabled>A chord</button></div></div></div><section class="controls" aria-label="Adjustments"><label for="exposure">Screen exposure <output id="exposure-value">1.0×</output><input id="exposure" type="range" min="-3" max="5" value="0" step="0.1"></label><label for="hold-speed">Hold step <output id="hold-value">0.50 s</output><input id="hold-speed" type="range" min="100" max="1500" value="500" step="50"></label><label for="volume">Sound volume <output id="volume-value">25%</output><input id="volume" type="range" min="0" max="50" value="25" step="1"></label></section></div>
+        </section>
         <div class="visual-grid">
           <div class="light-screen modes-active" id="light-screen">
             <div class="screen-top"><span>MIXED LIGHT</span><span class="mixed-color" title="Computed mixed-light color"><span id="color-chip" aria-hidden="true"></span><span id="color-hex">#000000</span></span></div>
             <div class="light-field" id="light-field" aria-hidden="true" hidden><div class="light-orb" id="light-orb"></div></div>
             <div id="modes-view">
-              <div class="surface-heading"><span>ROUNDED CUBE</span><span>THIN METAL SURFACE</span></div>
-              <div class="cube-stage"><canvas id="cube" tabindex="0" role="img" aria-label="Rounded metal cube with surface vibration patterns" aria-describedby="cube-help mode-summary"></canvas><p id="mode-message" role="status">Loading the rounded cube…</p></div>
-              <div class="cube-tools"><span id="cube-help">Drag to turn · arrow keys when focused</span><div><button id="mode-pause" type="button" aria-pressed="false" data-mode-control disabled>Pause motion</button><button id="mode-reset" type="button" data-mode-control disabled>Reset view</button><button id="mode-save" type="button" data-mode-control disabled>Save image</button></div></div>
+              <div class="surface-heading"><span>ROUNDED CUBE</span><span id="cube-material">ALUMINUM · 1 MM SHELL</span></div>
+              <div class="cube-stage"><canvas id="cube" tabindex="0" role="img" aria-label="Rounded metal cube with surface vibration patterns" aria-describedby="cube-help"></canvas><p id="mode-message" role="status">Loading the rounded cube…</p></div>
+              <p class="cube-gesture" id="cube-help">Drag to turn · arrow keys when focused</p>
             </div>
             <div class="product-area">
               <p class="number-label">YOUR NUMBER</p>
@@ -45,11 +45,11 @@
             <div class="screen-bottom"><span id="mixture-label">Press a key to begin</span><button id="copy" class="text-button" type="button" disabled>Copy number <span aria-hidden="true">↗</span></button></div>
           </div>
           <section class="plate-screen" id="plate-screen" hidden aria-label="Eigenmode visualization">
-            <div class="screen-top"><span id="plate-screen-title">COLORED NODES</span><span>SQUARE PLATE</span></div>
+            <div class="screen-top"><span id="plate-screen-title">COLORED NODES</span><span id="plate-material">SIMPLY SUPPORTED</span></div>
             <div class="plate-wrap"><canvas id="plate-canvas" width="256" height="256" role="img" aria-label="Silent square plate. Play a key to see its mode."></canvas><p id="plate-empty">Press a key to shape the plate.</p></div>
             <div class="plate-legend" id="plate-legend">Each color traces one mode’s nodal lines.</div>
           </section>
-          <aside class="spectrum-panel" id="spectrum-panel" aria-label="Spectrum and color measurements">
+          <aside class="spectrum-panel" id="spectrum-panel" hidden aria-label="Spectrum and color measurements">
             <div class="panel-heading"><span>THE SPECTRUM</span><span id="line-count">0 LINES</span></div>
             <p class="small-description">Separate frequencies. One perception.</p>
             <svg id="spectrum" viewBox="0 0 320 140" role="img" aria-label="No spectral lines active"><g id="spectrum-grid"></g><g id="spectrum-lines"></g><text id="spectrum-max" x="312" y="10" text-anchor="end">4 power units</text><text x="8" y="135">428 THz</text><text x="312" y="135" text-anchor="end">749 THz</text></svg>
@@ -57,58 +57,74 @@
             <div class="axis-labels"><span>RED / LOW FREQUENCY</span><span>VIOLET / HIGH</span></div>
             <dl class="readouts"><div><dt>Relative luminance Y</dt><dd id="luminance">0.0000</dd></div><div><dt>Chromaticity x, y</dt><dd id="chromaticity">—</dd></div><div><dt>Total power units</dt><dd id="power">0</dd></div></dl>
             <p class="gamut-note" id="gamut-note">sRGB preview · exposure compressed</p>
-            <div class="mode-panel" id="mode-panel">
-              <div class="panel-heading"><span>SURFACE MODES</span><span>01—26</span></div>
-              <p id="mode-summary">One key, one pattern.</p>
-              <label for="mode-select">Inspect a mode</label><select id="mode-select" data-mode-control disabled><option value="">Play a key or choose…</option></select>
-              <p class="mode-note">Bright lines trace the zeros. Play a chord to combine patterns.</p>
-              <a class="mode-model" href="./data/modes/README.txt">Simplified bending model ↗</a>
-            </div>
           </aside>
-          <aside class="plate-panel" id="plate-panel" hidden aria-label="Eigenmode controls and measurements">
-            <div class="panel-heading"><span>THE MODES</span><span id="plate-count">0 ACTIVE</span></div>
-            <label for="plate-readout">Show<select id="plate-readout"><option value="nodes">Colored nodes</option><option value="strength">Vibration strength</option><option value="field">Moving field</option></select></label>
-            <p class="plate-description" id="plate-description">Overlay each note’s nodal lines in its own color. A chord keeps every pattern visible.</p>
-            <div class="plate-motion-controls" id="plate-motion-controls" hidden><button id="plate-motion" type="button" aria-pressed="false">Freeze motion</button><span>Slowed 200× · musical pitch ratios</span></div>
-            <div class="plate-presets" aria-label="Try a modal mixture"><button data-plate-preset="single" type="button" disabled>One mode</button><button data-plate-preset="pair" type="button" disabled>A pair</button><button data-plate-preset="chord" type="button" disabled>A chord</button></div>
-            <div id="active-plate-modes" class="active-plate-modes" aria-label="Active mode weights"><p>No modes active.</p></div>
-            <p class="plate-model-note">Simply supported edges · musically retuned shapes.<br><a href="./modes.txt">Model & readouts ↗</a></p>
-            <details class="prime-details"><summary>Prime encoding <span id="plate-power">0 weight units</span></summary><output id="plate-product" aria-label="Exact modal prime product">1</output><p id="plate-factorization">The empty product.</p><button id="plate-copy" class="text-button" type="button" disabled>Copy number ↗</button></details>
-          </aside>
+
         </div>
 
-        <div class="keyboard-top"><div><span class="section-label">THE KEYBOARD</span><span class="key-hint">Type the letters below. Hold to build intensity.</span></div><div class="transport"><button id="sound" type="button" aria-pressed="true" disabled><span aria-hidden="true">♪</span> <span class="sound-label">Sound on</span></button><button id="sustain" type="button" aria-pressed="false" disabled>Sustain <span class="button-state">off</span></button><button id="clear" type="button" disabled>Clear <kbd>esc</kbd></button></div></div>
-        <p id="audio-hint" class="audio-hint">Sound is on. Play a key to hear its tone.</p>
-        <div id="keyboard" class="keyboard" tabindex="0" aria-label="26 keys from red to violet. Type the matching QWERTY letters to play." aria-describedby="audio-hint"></div>
-        <div class="keyboard-bottom"><span id="key-detail">26 primes · 700–400 nm · C3–C♯5</span><span><kbd>space</kbd> sustain <span class="hint-divider">/</span> <kbd>esc</kbd> clear</span></div>
+        <div id="keyboard" class="keyboard" tabindex="0" aria-label="26 keys from red to violet. Type the matching QWERTY letters to play."></div>
       </section>
 
       <div class="below-instrument">
-        <section class="experiments" aria-labelledby="experiment-heading"><h2 id="experiment-heading">A few starting points<span>LOAD A MIXTURE</span></h2><div class="presets"><button data-preset="ember" type="button" disabled><span class="preset-dot ember"></span>Ember<span class="preset-formula">red + yellow</span><span aria-hidden="true">↗</span></button><button data-preset="violet" type="button" disabled><span class="preset-dot violet"></span>Afterglow<span class="preset-formula">red + blue</span><span aria-hidden="true">↗</span></button><button data-preset="daylight" type="button" disabled><span class="preset-dot daylight"></span>Full spectrum<span class="preset-formula">all 26 lines</span><span aria-hidden="true">↗</span></button></div></section>
-        <section class="controls" aria-label="Instrument settings"><label for="exposure">Screen exposure <output id="exposure-value">1.0×</output><input id="exposure" type="range" min="-3" max="5" value="0" step="0.1"></label><label for="hold-speed">Hold step <output id="hold-value">0.50 s</output><input id="hold-speed" type="range" min="100" max="1500" value="500" step="50"></label><label for="volume">Sound volume <output id="volume-value">25%</output><input id="volume" type="range" min="0" max="50" value="25" step="1"></label></section>
+
         <section class="song-player" aria-labelledby="song-title">
           <div class="song-library"><label for="song-select">CLASSICAL LIBRARY <span>10 themes & excerpts</span></label><select id="song-select" disabled></select></div>
           <div class="song-heading"><span class="section-label">PLAY A CLASSIC</span><h2 id="song-title"><span id="song-name">Ode to Joy</span> <span id="song-composer">Ludwig van Beethoven</span></h2><p id="song-description">Theme in C major · melody & harmony</p></div>
           <div class="song-actions"><button id="song-play" type="button" disabled>▶ Play song</button><button id="song-restart" type="button" disabled>Restart</button><button id="song-stop" type="button" disabled>Stop</button><label for="song-tempo">Tempo <select id="song-tempo" disabled><option value="0.75">72 BPM</option><option value="1" selected>96 BPM</option><option value="1.25">120 BPM</option></select></label></div>
           <div class="song-timeline"><span id="song-status">Play to hear the song and watch its spectrum</span><progress id="song-progress" max="64" value="0" aria-label="Song progress"></progress><output id="song-time">0:00 / 0:40</output></div>
-          <p class="song-note">Play enables sound. Playback continues across views. Use Pause or Stop to interrupt it. <a id="song-source" href="https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=528" target="_blank" rel="noreferrer">Public-domain score ↗</a> <a href="./music/README.txt">Credits & arrangement notes ↗</a></p>
+          <p class="song-note">Play enables sound. Playback continues across views. Use Pause or Stop to interrupt it. Modal views play the score through the object’s resonances, so pitches differ from Number. <a id="song-source" href="https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=528" target="_blank" rel="noreferrer">Public-domain score ↗</a> <a href="./music/README.txt">Credits & arrangement notes ↗</a></p>
         </section>
       </div>
 
-      <section class="number-explorer" aria-labelledby="explore-heading"><div><h2 id="explore-heading">What does a number look like?</h2><p>Give the keyboard a product of its primes. Hear and see its factors.</p></div><form id="number-form"><label class="sr-only" for="number-input">Positive integer made from primes 2 through 101</label><input id="number-input" name="number" type="text" inputmode="numeric" autocomplete="off" placeholder="Try 30 = 2 × 3 × 5" maxlength="1600" required><button type="submit" id="load-number" disabled>Play number <span aria-hidden="true">→</span></button></form><p id="form-message" role="status"></p></section>
 
-      <details id="how-to-use" class="math"><summary>How to use</summary><div class="help-content"><ol><li>Choose Light, Eigenmodes, or Rounded cube.</li><li>Click keys or type their QWERTY letters. Hold a key to build intensity; combine keys to mix patterns.</li><li>Sound is on by default; use the Sound button to mute it. Sustain keeps released keys active; Clear or Escape resets them.</li><li>In Eigenmodes, choose Colored nodes, Vibration strength, or Moving field. Drag the rounded cube to rotate it.</li><li>Try a preset or one of the ten songs below the keyboard. Use Pause or Stop to interrupt playback.</li></ol><a href="#keyboard">Back to the keyboard ↑</a></div></details>
-      <details id="the-math" class="math"><summary><span><span class="math-symbol">∑</span> A little math. A lot of color.</span><span class="details-hint">HOW IT WORKS <span aria-hidden="true">+</span></span></summary><div class="math-content">
+      <details id="how-to-use" class="math">
+        <summary>How to use</summary>
+        <div class="help-content">
+          <ol>
+            <li><strong>Start with the settings at the top.</strong> The defaults are ready to play. Choose a view, then tune sound, Sustain, and the sliders as you explore. Number mixes colors; Flat plate shows patterns on a square plate; Rounded cube shows the normal component of a metal shell’s vibration modes.</li>
+            <li><strong>Play the keyboard.</strong> Type the letters on the keys, or press them with a mouse or touch. Combine keys to add colors or mode shapes. In the mode views, hold to build strength smoothly; release to fade quickly. Number uses whole-number steps instead.</li>
+            <li><strong>Keep a pattern.</strong> Turn on Sustain before releasing your keys. It keeps their weights and patterns active; modal tones still decay. Turn Sustain off to release them. Space toggles Sustain when you are not using another control.</li>
+            <li><strong>Clear your keys.</strong> Clear or Escape resets your manual mixture and its sound. If a song is playing, use its Stop button instead.</li>
+            <li><strong>Explore the display.</strong> Drag the cube to rotate it; when it has keyboard focus, use arrow keys or Home. Pause motion freezes only the display. The second selector row chooses the cube or plate model and the plate display. Free plate uses a freely suspended aluminum sheet; Simply supported keeps the ideal supported-edge patterns. Scalar surface shows simpler mathematical patterns; Elastic shell uses the metal model. In Flat plate, Colored nodes overlays the individual patterns, Mode mixture adds their signed shapes, and Vibration strength shows the square of that mixture. The pictures show readable strengths and fades, not fast physical vibration.</li>
+            <li><strong>Adjust sound.</strong> Sound starts on your first interaction. Use Sound on to mute, Enable sound to unmute, and Sound volume to adjust loudness. Elastic shell pitches are calculated resonances; Scalar surface uses illustrative pitches. In Elastic shell, the key’s λ label is the squared angular frequency, not its frequency in Hz. Hover or focus a key for its pitch.</li>
+            <li><strong>Play a song.</strong> Choose one of ten arrangements, then Play. Pause, Resume, Restart, Stop, and Tempo control playback. Switching views keeps your place but changes the sound model, so modal pitches differ from the original tune. Stop the song to return to manual playing.</li>
+            <li><strong>Adjust the preview.</strong> Screen exposure changes the Number and 2D plate brightness; Hold step controls Number’s integer buildup. If your device requests reduced motion, use Resume motion or Animate to enable the visual fade.</li>
+          </ol>
+          <a href="#keyboard">Back to the keyboard ↑</a>
+        </div>
+      </details>
+      <details id="the-math" class="math"><summary><span><span class="math-symbol">∑</span> The math</span><span class="details-hint">HOW IT WORKS <span aria-hidden="true">+</span></span></summary><div class="math-content">
         <article><h3>01 / Numbers become spectra</h3><p>Each key has a distinct prime pᵢ and a fixed wavelength λᵢ. A press starts at exponent 1; holding adds 1 at the selected interval, up to 32. Each exponent is an equal-radiant-power weight, not a photon count.</p><div class="equation">n = ∏ pᵢ<sup>eᵢ</sup><br>S<sub>λ</sub>(λ) = ∑ eᵢ δ(λ − λᵢ)</div><p>Unique factorization recovers every spectral weight. Multiplying numbers adds their spectra, within the instrument’s range. The number 1 means no light. Sustain keeps released weights; pressing again adds to them.</p></article>
         <article><h3>02 / Spectra become perception</h3><p>Light frequencies are logarithmically spaced from 700 nm red to 400 nm violet, using f = c/λ. The official CIE 1931 2° observer functions convert the sum of spectral lines to XYZ:</p><div class="equation">(X, Y, Z) = ∑ eᵢ (x̄(λᵢ), ȳ(λᵢ), z̄(λᵢ))</div><p>The 1 nm data is linearly interpolated. Mixing adds power at existing frequencies; it does not average frequencies or produce a new spectral line. Different spectra can look identical: a color alone cannot recover the number.</p></article>
-        <article><h3>03 / Perception meets a screen</h3><p>XYZ is transformed to linear sRGB. Most pure spectral colors are outside a screen’s gamut. We clip negative channels, apply one shared exposure-compression scale, then apply the sRGB transfer function. The preview is an approximation; the XYZ values above remain unmodified.</p><p>Doubling every exponent doubles XYZ and preserves chromaticity. Equal power does not mean equal perceived brightness, so violet and deep red can look dim. Keycap colors are normalized as a guide.</p><p>Sound uses the same exponents as power weights, with one equal-tempered sine tone per prime, C3 to C♯5. Amplitude grows as √eᵢ, because power is proportional to amplitude squared. Tones add before output compression and limiting; these protect loud chords and do not change the encoded spectrum.</p><div class="equation">s(t) = A₀ ∑ √eᵢ sin(2πfᵢt + φᵢ)</div></article>
-        <article class="modal-math"><h3>04 / The same weights become modes</h3><p>Each prime also selects an orthonormal square-plate mode φᵢ. Its amplitude is √eᵢ, so average squared displacement grows linearly with the prime exponent. Colored nodes add drawings of the individual nodal lines; vibration strength shows their squared amplitudes; the moving field shows their signed sum.</p><div class="equation">u(x, y, t) = ∑ √eᵢ φᵢ(x, y) cos(2πfᵢt)<br>⟨u²⟩ = ½ ∑ eᵢ φᵢ(x, y)²</div><p>The spatial shapes are exact eigenfunctions of an ideal simply supported square plate. Their time frequencies are retuned to the keyboard’s musical notes and slowed 200× for the display. The strength view is mean squared displacement, not physical energy. Colored nodal overlays are not a simulation of sand. The prime number encodes weights, not phase or animation time. <a href="./modes.txt">Read the complete model ↗</a></p></article>
+        <article><h3>03 / Perception meets a screen</h3><p>XYZ is transformed to linear sRGB. Most pure spectral colors are outside a screen’s gamut. We clip negative channels, apply one shared exposure-compression scale, then apply the sRGB transfer function. The preview is an approximation; the XYZ values above remain unmodified.</p><p>Doubling every exponent doubles XYZ and preserves chromaticity. Equal power does not mean equal perceived brightness, so violet and deep red can look dim. Keycap colors are normalized as a guide.</p><p>In Number, sound uses the same exponents as power weights, with one equal-tempered sine tone per prime, C3 to C♯5. Amplitude grows as √eᵢ, because power is proportional to amplitude squared. Tones add before output compression and limiting; these protect loud chords and do not change the encoded spectrum.</p><div class="equation">s(t) = A₀ ∑ √eᵢ sin(2πfᵢt + φᵢ)</div></article>
+        <article class="modal-math" id="plate-math">
+          <h3>04 / Square-plate modes</h3>
+          <p>An eigenmode is a fixed spatial shape that can vibrate at a natural frequency. For an ideal thin square plate with simply supported edges, the basic shapes are sin(mπx) sin(nπy), and their frequency ratios follow m² + n². The labels (m,n) count half-waves in the two directions; + and − distinguish symmetric and antisymmetric combinations of the swapped shapes.</p>
+          <div class="equation">ρh ü + D ∇⁴u = 0<br>D = Eh³ / [12(1 − ν²)]</div>
+          <p>Here E is Young’s modulus, ν is Poisson’s ratio, ρ is density, and h is thickness. The plate’s audible fundamental is chosen as 110 Hz. Colored nodes draws each selected mode’s zero lines separately; Mode mixture shows their signed sum; Vibration strength shows the square of that sum, including interference. These are not simulations of sand settling.</p>
+        </article>
+        <article class="modal-math" id="shell-math">
+          <h3>05 / Elastic-shell modes</h3>
+          <p>A shell is a solid whose wall is thin compared with its overall size. Elastic means it returns toward its resting shape after a small deformation. Unlike a flat-plate model, a curved shell couples bending and stretching: moving one part outward can also pull on neighboring material.</p>
+          <p>This model is a freely suspended aluminum shell, 20 cm across, with a 3 cm outside corner radius and a 1 mm wall. A shell finite-element calculation includes bending, stretching, transverse shear, and mass, and solves for vector displacement patterns:</p>
+          <div class="equation">K uⱼ = λⱼ M uⱼ<br>λⱼ = ωⱼ² &nbsp; · &nbsp; fⱼ = √λⱼ / (2π)</div>
+          <p>K describes stiffness and M describes mass. Each uⱼ is a mode shape; fⱼ is its natural frequency in hertz (cycles per second). The keyboard shows φⱼ and λⱼ, measured in s⁻²; for example, 3.28e6 means 3.28 × 10⁶ and corresponds to about 288 Hz. Symmetry allows different shapes to share an eigenvalue, so the mode index distinguishes them.</p>
+          <p>The six motions that translate or rotate the entire object without deforming it are excluded. The 26 retained elastic modes passed a flat-plate benchmark, rigid-motion and equation-residual checks, and mesh refinement; the frequency changes on refinement were below 1.16%.</p>
+          <p>The fixed cube displays each vector mode’s component perpendicular to the surface. Bright lines mark zeros of that normal component; material could still move tangentially there. Audio uses the calculated natural frequencies, but damping and the way sound travels into air are not calibrated to a real object.</p>
+        </article>
+        <article class="modal-math" id="free-plate-math"><h3>Free aluminum plate</h3><p>Free plate models a 20 × 20 cm aluminum sheet, 1 mm thick, with all four edges free to move and rotate. The finite-element calculation uses Reissner–Mindlin plate bending with transverse shear and rotary inertia (MITC4 elements). No supports or edge springs are added. The thin-plate limit is D ∇⁴φ = ρh ω²φ; free-edge bending moments and effective transverse forces vanish.</p><div class="equation">K uⱼ = λⱼ M uⱼ<br>fⱼ = √λⱼ / (2π)</div><p>The keyboard labels φⱼ identify the computed bending modes; their pitches are the predicted frequencies in Hz, using E = 69 GPa, ν = 0.33, and ρ = 2700 kg/m³. Rigid translation perpendicular to the plate and two rigid tilts are excluded. In-plane modes are outside this bending model. Unlike the simply supported view, the free edges are not nodal lines.</p><p>The displayed shapes are transverse displacements, normalized for readability. Holding, Sustain, quick fades, and sound damping remain illustrative; this is not a calibrated recording or a simulation of sand settling. The numerical solve is checked for rigid motions, equation residuals, mass orthogonality, mesh convergence, and agreement with analytical simply supported plate frequencies.</p><p><a href="https://docu.ngsolve.org/ngs24/SaS/plates_derivation.html">Plate equations and boundary conditions ↗</a></p></article>
+        <article class="modal-math" id="scalar-math"><h3>Scalar surface modes</h3><p>Scalar surface solves the Laplace–Beltrami equation on the rounded cube: −Δₛφⱼ = λⱼφⱼ. Each mode is a single scalar field on the surface, rather than a vector displacement of a metal shell. Bright contours trace its zeros. These simpler patterns are useful for exploring geometry and superposition.</p><p>The eigenvalues use normalized geometry (width 2), not seconds⁻². Sound is an illustrative bending-style mapping fⱼ = 110 λⱼ/λ₁ Hz; it is not a prediction of this object's metal resonances. Both cube models use the same readable strength envelopes and fixed geometry.</p></article>
+        <article class="modal-math" id="mode-envelopes">
+          <h3>06 / What grows and fades</h3>
+          <p>Holding a mode key smoothly increases its strength e, up to 32, with displayed amplitude √e. Several keys superpose their shapes. Sustain retains those strengths; releasing with Sustain off starts a quick fade.</p>
+          <div class="equation">display field = ∑ Aⱼ(t) φⱼ(x)<br>Aⱼ(t) = Aⱼ(t₀) exp[−5(t − t₀)] after release</div>
+          <p>The cube’s geometry stays fixed. These visual envelopes let you inspect the eigenmodes; they are not slow-motion footage of metal vibrating. Sound uses short damped modal tones. Number instead retains its original integer prime weights and musical tuning.</p>
+        </article>
         <p class="sources">Data: <a href="https://cie.co.at/datatable/cie-1931-colour-matching-functions-2-degree-observer" target="_blank" rel="noreferrer">CIE (2019), DOI 10.25039/CIE.DS.xvudnb9b</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>. Unmodified data, bundled locally. Conversion: <a href="https://www.w3.org/TR/css-color-4/#color-conversion-code" target="_blank" rel="noreferrer">W3C CSS Color 4</a>. <a href="./data/README.txt">Data provenance & display formula</a>.</p>
       </div></details>
       <p id="app-message" class="app-message" role="status">Loading the color-matching functions…</p>
       <noscript><p>Primeboard needs JavaScript to mix light and play sound. Please enable JavaScript and reload.</p></noscript>
     </main>
-    <footer><span>MADE OF LIGHT & PRIME NUMBERS</span><a href="https://jacksonwalters.com">An experiment by Jackson Walters <span aria-hidden="true">↗</span></a><a href="https://github.com/DC-Creatives-Club/primeboard">Source ↗</a></footer>
+    <footer><a href="https://jacksonwalters.com">An experiment by Jackson Walters <span aria-hidden="true">↗</span></a><a href="https://github.com/DC-Creatives-Club/primeboard">Source ↗</a></footer>
   </div>
 </body>
 </html>
