@@ -96,12 +96,11 @@ export class CubeView {
   }
 
   async load() {
-    this.models = Object.fromEntries(await Promise.all(['elastic', 'scalar'].map(async model => {
-      const name = model === 'elastic' ? 'rounded-shell' : 'rounded-cube';
+    this.models = Object.fromEntries(await Promise.all([['cube', 'elastic', 'rounded-shell'], ['cube', 'scalar', 'rounded-cube'], ['sphere', 'elastic', 'sphere-shell'], ['sphere', 'scalar', 'sphere-scalar']].map(async ([shape, model, name]) => {
       const responses = await Promise.all(['bin', 'json'].map(ext => fetch(new URL(`./data/modes/${name}.${ext}`, import.meta.url))));
       if (responses.some(r => !r.ok)) throw new Error('The surface modes could not load. You can still play in Number view.');
       const [buffer, metadata] = await Promise.all([responses[0].arrayBuffer(), responses[1].json()]);
-      return [model, decodeModes(buffer, metadata)];
+      return [`${shape}:${model}`, decodeModes(buffer, metadata)];
     })));
     this.setModel('elastic');
     this.gl = this.canvas.getContext('webgl2', { alpha: true, antialias: true, preserveDrawingBuffer: true });
@@ -110,9 +109,9 @@ export class CubeView {
     return this.data;
   }
 
-  setModel(model) {
-    this.model = model;
-    this.data = this.models[model];
+  setModel(model, shape = this.shape || 'cube') {
+    this.model = model; this.shape = shape;
+    this.data = this.models[`${shape}:${model}`];
     this.spec = resonanceSpec(model === 'elastic' ? this.data.metadata.frequenciesHz : this.data.eigenvalues);
     if (model === 'elastic') this.spec.fundamentalHz = this.data.metadata.frequenciesHz[0];
     this.bank = new ModePulse(this.spec);
@@ -207,7 +206,7 @@ export class CubeView {
     ctx.fillStyle = '#101316'; ctx.fillRect(0, 0, image.width, image.height);
     ctx.drawImage(this.canvas, 0, 0);
     ctx.fillStyle = '#e6dfa5'; ctx.font = '16px monospace';
-    ctx.fillText('primeboard. / rounded cube', 24, image.height - 43);
+    ctx.fillText(`primeboard. / ${this.shape === 'sphere' ? 'sphere' : 'rounded cube'}`,  24, image.height - 43);
     ctx.fillStyle = '#a4adb4'; ctx.font = '12px monospace';
     const room = Math.max(12, Math.floor((image.width - 48) / 7.3));
     const caption = `n = ${number}`;
@@ -215,7 +214,7 @@ export class CubeView {
     image.toBlob(blob => {
       if (!blob) return;
       const url = URL.createObjectURL(blob), link = document.createElement('a');
-      link.href = url; link.download = `primeboard-cube-${number.slice(0,32)}.png`;
+      link.href = url; link.download = `primeboard-${this.shape}-${number.slice(0,32)}.png`;
       link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     }, 'image/png');
   }

@@ -26,6 +26,7 @@ let playRequest = 0;
 let cubeView;
 let modesReady = false;
 let visualization = 'cube';
+const surfaceView = view => view === 'cube' || view === 'sphere';
 let plateDisplay;
 const interaction = 'strike';
 let animatePlate = !matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -80,20 +81,20 @@ function configureResonator() {
 }
 const surfaceModeLabel = i => 'φ' + String(i + 1).replace(/[0-9]/g, digit => '₀₁₂₃₄₅₆₇₈₉'[Number(digit)]);
 function keyModeLabel(i) {
-  return visualization === 'modes' ? plateDisplay.modeLabel(i) : surfaceModeLabel(i);
+  return visualization === 'modes' ? plateDisplay.modeLabel(i) : (cubeView?.data?.metadata.labels?.[i] || surfaceModeLabel(i));
 }
 function updateKeyboardLabels() {
   const modal = visualization !== 'light';
   $('keyboard').classList.toggle('plate-keys', modal);
-  $('keyboard').classList.toggle('cube-keys', visualization === 'cube');
+  $('keyboard').classList.toggle('cube-keys', surfaceView(visualization));
   $('keyboard').setAttribute('aria-label', modal ? '26 eigenmodes. Type the matching QWERTY letters to play.' : '26 primes. Type the matching QWERTY letters to play.');
   keyButtons.forEach((button, i) => {
     const key = KEYS[i], label = keyModeLabel(i);
     button.querySelector('.key-prime').textContent = modal ? label : key.prime;
-    const eigenvalue = visualization === 'cube' ? cubeView?.data?.eigenvalues[i] : null;
+    const eigenvalue = surfaceView(visualization) ? cubeView?.data?.eigenvalues[i] : null;
     const detail = eigenvalue ? `λ = ${(cubeView.model === 'scalar' ? eigenvalue.toFixed(3) : eigenvalue.toExponential(2).replace('e+', 'e'))}` : keyPitch(i);
     button.querySelector('.key-note').textContent = detail;
-    button.querySelector('.key-frequency').textContent = visualization === 'cube' ? keyPitch(i) : '';
+    button.querySelector('.key-frequency').textContent = surfaceView(visualization) ? keyPitch(i) : '';
     button.setAttribute('aria-label', modal ? `${key.letter}: mode ${label}, ${detail}, ${keyPitch(i)}` : `${key.letter}: prime ${key.prime}, ${key.note}`);
     button.title = modal ? `${key.letter} · mode ${label} · ${detail} · ${keyPitch(i)}` : `${key.letter} · prime ${key.prime} · ${key.note}`;
   });
@@ -160,24 +161,27 @@ function render() {
   cubeView?.update(modal);
   if (modesReady) {
     const index = active === 1 ? e.findIndex(Boolean) : -1;
-    const summary = index >= 0 ? `${surfaceModeLabel(index)} · ${keyPitch(index)}` : `${active} active modes`;
-    $('cube').setAttribute('aria-label', `Rounded cube, ${summary}`);
+    const summary = index >= 0 ? `${keyModeLabel(index)} · ${keyPitch(index)}` : `${active} active modes`;
+    $('cube').setAttribute('aria-label', `${visualization === 'sphere' ? 'Sphere' : 'Rounded cube'}, ${summary}`);
   }
   if (!inSong) synth.sync(visualization === 'light' ? e : modal);
 }
 
 function selectView(view) {
   visualization = view;
+  if (surfaceView(view) && modesReady && cubeView.shape !== view) cubeView.setModel(cubeView.model, view);
   configureResonator();
-  const cube = view === 'cube', modal = view === 'modes';
-  for (const name of ['light', 'modes', 'cube']) $('view-' + name).setAttribute('aria-pressed', String(view === name));
+  const cube = surfaceView(view), modal = view === 'modes';
+  for (const name of ['light', 'modes', 'cube', 'sphere']) $('view-' + name).setAttribute('aria-pressed', String(view === name));
   $('light-screen').classList.toggle('modes-active', cube);
   $('light-screen').hidden = modal; $('spectrum-panel').hidden = view !== 'light';
   $('plate-screen').hidden = !modal;
   $('cube-options').hidden = !cube; $('cube-actions').hidden = !cube; $('plate-options').hidden = !modal; $('plate-actions').hidden = !modal;
   $('modes-view').hidden = !cube;
   $('light-field').hidden = cube;
-  $('model-label').textContent = cube ? (cubeView?.model === 'scalar' ? 'SCALAR SURFACE MODES' : 'ROUNDED-CUBE SHELL MODES') : modal ? 'SQUARE-PLATE EIGENMODES' : 'CIE 1931 · 2° OBSERVER';
+  $('model-label').textContent = cube ? (cubeView?.model === 'scalar' ? 'SCALAR SURFACE MODES' : (view === 'sphere' ? 'SPHERICAL SHELL MODES' : 'ROUNDED-CUBE SHELL MODES')) : modal ? 'SQUARE-PLATE EIGENMODES' : 'CIE 1931 · 2° OBSERVER';
+  $('surface-name').textContent = view === 'sphere' ? 'SPHERE' : 'ROUNDED CUBE';
+  $('cube-options').setAttribute('aria-label', view === 'sphere' ? 'Sphere model' : 'Cube model');
   cubeView?.setEnabled(cube);
   updateKeyboardLabels(); refreshSoundControls(); render();
 }
@@ -226,6 +230,7 @@ async function startModes() {
     cubeView.setEnabled($('view-cube').getAttribute('aria-pressed') === 'true');
     await cubeView.load();
     modesReady = true; showError('');
+    $('view-sphere').disabled = false;
     $('cube-elastic').disabled = false; $('cube-scalar').disabled = false;
     cubeView.setInteraction(interaction);
     configureResonator(); updateKeyboardLabels();
@@ -360,6 +365,7 @@ function bindInputs() {
   window.addEventListener('hashchange', () => revealSection(location.hash)?.scrollIntoView());
   if (location.hash) requestAnimationFrame(() => revealSection(location.hash)?.scrollIntoView());
   $('view-cube').addEventListener('click', () => selectView('cube'));
+  $('view-sphere').addEventListener('click', () => selectView('sphere'));
   for (const model of ['elastic', 'scalar']) $('cube-' + model).addEventListener('click', () => selectCubeModel(model));
   $('view-light').addEventListener('click', () => selectView('light'));
   $('view-modes').addEventListener('click', () => selectView('modes'));

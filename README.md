@@ -207,3 +207,27 @@ against a 32 × 32 mesh, rigid motions, mass orthogonality, eigen residuals, and
 simply supported analytical benchmark. See `web/data/modes/free-plate.json`
 for diagnostics and `web/data/modes/free-plate.bin` for normalized grid fields.
 Boundary-condition reference: [NGSolve plate derivation](https://docu.ngsolve.org/ngs24/SaS/plates_derivation.html).
+
+### Sphere
+
+**Sphere** shares the 3D controls and offers **Elastic shell** and **Scalar surface**.
+The elastic model is a free aluminum shell, 20 cm outside diameter and 1 mm wall,
+with a 9.95 cm midsurface radius. Its lowest 26 elastic modes all have substantial
+normal displacement. Their calculated pitches are approximately 5.9–7.7 kHz;
+the display shows their normal components on fixed geometry. The complete spectrum
+also includes tangential torsional modes, which are outside this selected set.
+
+Scalar surface uses exact real spherical harmonics on the unit sphere, labels
+`(ℓ,m)`, and eigenvalues `ℓ(ℓ+1)`. Positive `m` is cosine longitude, negative `m`
+is sine longitude, and zero is axisymmetric. The constant mode is omitted; pitches
+are illustrative with a 110 Hz fundamental. The 26-key limit partially includes
+the last repeated-frequency family in each model.
+
+Reproduce both assets with `.venv-shell/bin/python scripts/solve_sphere.py`, using
+`scripts/requirements-shell.txt`. Shell matrices reuse the existing MITC4 kernel.
+Validation includes 18/26 subdivisions per cube-face mesh, six rigid motions,
+eigen residuals, mass orthogonality, radial participation, and comparison to
+[Huang & Chen (1971), vacuum bending theory, Eq. 37b](https://repository.library.noaa.gov/view/noaa/34603/noaa_34603_DS1.pdf).
+Finite mesh symmetry slightly splits ideal degeneracies; numerical modes are not
+claimed to be exact individual spherical harmonics. Damping and visual envelopes
+remain illustrative, with no fluid loading or acoustic radiation calculation.

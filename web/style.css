@@ -126,3 +126,5 @@ main{padding-top:20px}
 .plate-keys:not(.cube-keys) .key{height:76px}
 .plate-keys:not(.cube-keys) .key-prime{position:absolute;top:24px;bottom:23px;left:2px;right:2px;display:flex;align-items:center;justify-content:center;text-align:center;white-space:nowrap;font-size:clamp(8px,1.7vw,17px);line-height:1;letter-spacing:-.5px}
 .plate-keys:not(.cube-keys) .key-note{bottom:7px;line-height:1;white-space:nowrap;font-size:clamp(6px,1.4vw,8px)}
+
+#sphere-math{scroll-margin-top:20px}

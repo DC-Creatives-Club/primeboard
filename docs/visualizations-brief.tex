@@ -1,92 +1,121 @@
 \documentclass[11pt,letterpaper]{article}
-\usepackage[margin=0.7in]{geometry}
+\usepackage[margin=0.75in]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern,amsmath,amssymb,microtype}
-\usepackage{xcolor}
-\usepackage{enumitem,titlesec}
+\usepackage{xcolor,enumitem,titlesec}
 \usepackage[colorlinks=true,urlcolor=blue!45!black,linkcolor=black]{hyperref}
-\hypersetup{pdftitle={Primeboard: Three Mathematical Views},pdfauthor={Primeboard}}
+\hypersetup{pdftitle={Primeboard: Numbers, Plates, and Shells},pdfauthor={Jackson Walters}}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{5pt}
-\setlist[itemize]{leftmargin=1.3em,itemsep=1pt,topsep=2pt,parsep=0pt}
-\newcommand{\tightlist}{\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}}
+\setlist[itemize]{leftmargin=1.3em,itemsep=2pt,topsep=3pt,parsep=0pt}
 \titleformat{\subsection}{\large\bfseries}{}{0pt}{}
-\titlespacing*{\subsection}{0pt}{10pt}{4pt}
+\titlespacing*{\subsection}{0pt}{11pt}{5pt}
 \setlength{\abovedisplayskip}{6pt}
 \setlength{\belowdisplayskip}{6pt}
-\setlength{\abovedisplayshortskip}{3pt}
-\setlength{\belowdisplayshortskip}{3pt}
 \pagestyle{plain}
 \begin{document}
 {\LARGE\bfseries Primeboard}\hfill{\small An interactive art project}\par
-{\large Light, plate modes, and a rounded cube}\par
-\vspace{3pt}
-Primeboard is an interactive art project built around one keyboard and three mathematical views. Each of its 26 keys controls a nonnegative integer weight, from 0 to 32. Holding a key increases its weight; playing several keys combines their contributions. Songs drive these same weights automatically.
+{\large Numbers, plates, and shells}\par
+\href{https://primeboard.jacksonwalters.com/}{primeboard.jacksonwalters.com}\hfill{\small Model brief \,$\cdot$\, November 2026}
 
-The views interpret that shared state differently: as a spectrum of light, a mixture of square-plate vibration patterns, or a field on a rounded cube. Primes label the Light keys; spatial mode labels identify the keys in the two eigenmode views.
+Primeboard turns a 26-key keyboard into four related experiments: \textbf{Number}, \textbf{Flat plate}, \textbf{Rounded cube}, and \textbf{Sphere}. Keys mix light or select spatial eigenmodes; songs activate those same keys automatically. The common interface connects exact arithmetic, color perception, and vibration without claiming they are the same physical phenomenon.
 
-\subsection{1. Light: from prime factors to color}\label{light-from-prime-factors-to-color}
+\subsection{1. Number: prime factors become light}
+Each key corresponds to one of the first 26 primes, from 2 through 101. Its nonnegative integer exponent \(e_i\), capped at 32, gives a relative spectral-power weight. The mixture is encoded exactly by
+\[
+ N=\prod_{i=0}^{25}p_i^{e_i}.
+\]
+Unique factorization recovers every weight: \(30=2\cdot3\cdot5\) selects the first three keys equally. The number 1 represents darkness. Multiplying numbers adds their exponent vectors, within the instrument's range. The primes encode the spectrum; their numerical sizes do not set the frequencies.
 
-The keys correspond to the first 26 primes, from 2 through 101. If key \(i\) has weight \(e_i\), the entire mixture can be encoded exactly as
+Key position assigns a wavelength, logarithmically spaced from red to violet:
+\[
+ \ell_i=700\left(\frac{400}{700}\right)^{i/25}\!\mathrm{nm},
+ \qquad f_i^{\mathrm{light}}=\frac{c}{\ell_i}.
+\]
+This covers approximately 428--749 THz. The app adds narrow spectral lines using the CIE 1931 standard observer's color-matching functions:
+\[
+ (X,Y,Z)=\sum_i e_i\bigl(\bar x(\ell_i),\bar y(\ell_i),\bar z(\ell_i)\bigr).
+\]
+XYZ is converted to linear sRGB, negative channels are clipped, a shared exposure-compression scale is applied, and the sRGB transfer function produces screen values. This is a display approximation: most pure spectral colors lie outside a screen's gamut. Mixing adds spectral power rather than averaging wavelengths. Different spectra may look identical, so a displayed color cannot uniquely recover the number.
 
-\[N=\prod_{i=0}^{25}p_i^{e_i}.\]
+Sound has a separate musical mapping: C3 through C\(\sharp\)5,
+\[
+ f_i^{\mathrm{audio}}=440\,2^{(i-21)/12}\;\mathrm{Hz}.
+\]
+Each sine tone's amplitude grows as \(\sqrt{e_i}\), giving power proportional to the exponent. These pitches are not optical frequencies shifted down by one common factor. Chords pass through shared compression and limiting.
 
-Unique prime factorization recovers the weights. For example, \(30=2\cdot3\cdot5\) activates the first three keys equally. The number 1 represents silence and darkness. The primes are an encoding device; their numerical sizes do not determine the frequencies.
+\subsection{What a mode key means}
+An eigenmode is a fixed spatial pattern with an associated natural frequency. Striking a real object generally excites many modes, depending on the location, direction, and duration of the strike. Continuous forcing near a resonance can make one mode dominant if the force couples to it.
 
-Instead, key position assigns a wavelength on a logarithmic scale:
+Primeboard instead selects a mode directly. In the spatial views, holding a key increases its strength continuously, up to 32; multiple keys superpose patterns. Sustain retains their visual strengths. This is an idealized instrument for exploring modes, not a simulated hammer or shaker. Primes belong to Number; mode labels and pitches identify the spatial keys.
 
-\[\ell_i=700\left(\frac{400}{700}\right)^{i/25}\text{ nm},\qquad f_i^{\rm light}=\frac{c}{\ell_i}.\]
+\newpage
+{\large\bfseries Flat and curved metal}\par
+\subsection{2. Flat plate: supported edges or free edges}
+For a uniform thin plate, the Kirchhoff--Love bending equation and its separated eigenproblem are
+\[
+ \rho h u_{tt}+D\nabla^4u=0,
+ \qquad D\nabla^4\phi=\rho h\omega^2\phi,
+ \qquad D=\frac{Eh^3}{12(1-\nu^2)}.
+\]
+Here \(E\) is Young's modulus, \(\nu\) Poisson's ratio, \(\rho\) density, and \(h\) thickness. A free oscillation has the form \(u(x,y,t)=\phi(x,y)\cos(\omega t+\alpha)\).
 
-This spans red to violet, approximately 428--749 THz. Each weight represents relative power in one narrow spectral line. The app adds the lines using the CIE 1931 color-matching functions:
+\textbf{Simply supported} uses a unit square whose transverse displacement and bending moment vanish at its edges. Its basic shapes are \(\sin(m\pi x)\sin(n\pi y)\), with frequency ratios proportional to \(m^2+n^2\). Diagonal modes are normalized as \(2\sin(m\pi x)\sin(m\pi y)\); for \(m<n\), the app uses
+\[
+ \phi_{mn}^{\pm}=\sqrt2\,[\sin(m\pi x)\sin(n\pi y)
+ \pm\sin(n\pi x)\sin(m\pi y)].
+\]
+Thus \((m,n)^{\pm}\) labels the pattern, including its symmetry. The first 26 modes are used. Their pitches retain the natural ratios, with a chosen 110 Hz fundamental; this option does not specify a physical plate size and material.
 
-\[(X,Y,Z)=\sum_i e_i\bigl(\bar x(\ell_i),\bar y(\ell_i),\bar z(\ell_i)\bigr).\]
+\textbf{Free plate} models a 20\,$\times$\,20 cm aluminum sheet, 1 mm thick, with all edges free to move and rotate. A MITC4 Reissner--Mindlin finite-element model includes bending, transverse shear, and rotary inertia. The transverse subsystem excludes one rigid translation and two rigid tilts; in-plane vibrations are outside this model. Its 26 computed bending modes, labeled \(\phi_j\), have predicted frequencies of about 81--1496 Hz.
 
-These functions model how a standard human observer responds to different wavelengths. XYZ is converted to screen RGB, with gamut clipping and exposure compression. The result is a display approximation: screens cannot reproduce every pure spectral color. Mixing adds light power; it does not average wavelengths. Different spectra can also produce the same perceived color.
+Both plate options provide three readouts. \textbf{Colored nodes} overlays each selected mode's zero lines in its own color. \textbf{Mode mixture} shows the signed sum \(F=\sum_j A_j\phi_j\). \textbf{Vibration strength} shows \(F^2\), including interference; it is neither mechanical energy nor a long-time average. These displays evoke Chladni figures but do not model sand transport.
 
-Each key separately receives an equal-tempered musical pitch, C3 through C\(\sharp\)5: \(f_i^{\rm audio}=440\,2^{(i-21)/12}\) Hz. Sine-tone amplitude grows as \(\sqrt{e_i}\), so its power grows with the weight. These audible pitches are a musical mapping, not optical frequencies shifted down by a single common factor.
+\subsection{3. Rounded cube: scalar geometry or elastic shell}
+The rounded cube joins flat faces, cylindrical edges, and spherical corners into a closed surface \(S\). \textbf{Scalar surface} solves
+\[
+ -\Delta_S\phi_j=\lambda_j\phi_j,
+\]
+where \(\Delta_S\) is the Laplace--Beltrami operator. A triangular finite-element solve supplies the first 26 nonconstant modes on normalized geometry of width 2. Sound uses the illustrative bending-style mapping \(f_j=110\lambda_j/\lambda_1\) Hz. These are scalar geometric patterns, not metal-shell displacement modes.
 
-\subsection{2. Eigenmodes: Chladni-style patterns on a square plate}\label{eigenmodes-chladni-style-patterns-on-a-square-plate}
+\textbf{Elastic shell} models a freely suspended aluminum shell: 20 cm outside width, 3 cm outside corner radius, and 1 mm wall. MITC4 shell elements couple membrane stretching, bending, transverse shear, and inertia. The vector displacement modes solve
+\[
+ K\mathbf u_j=\lambda_j M\mathbf u_j,
+ \qquad \lambda_j=\omega_j^2,
+ \qquad f_j=\frac{\sqrt{\lambda_j}}{2\pi}.
+\]
+The stiffness matrix is \(K\), and \(M\) is the consistent mass matrix. Six rigid translations and rotations are excluded. The first 26 elastic pitches span about 288--1098 Hz. The fixed cube displays \(\mathbf u_j\cdot\mathbf n\): bright contours mark zero normal displacement, although tangential motion may remain there. Here the key's \(\lambda\) has units s\(^{-2}\); scalar-surface eigenvalues instead use normalized inverse-length-squared units.
 
-A thin, uniform elastic plate supports characteristic standing-wave shapes called \textbf{eigenmodes}. For transverse displacement \(u\), the ideal bending equation is
+\newpage
+{\large\bfseries Spherical symmetry and physical interpretation}\par
+\subsection{4. Sphere: harmonics and a hollow aluminum shell}
+\textbf{Scalar surface} uses exact real spherical harmonics on the unit sphere:
+\[
+ -\Delta_S Y_\ell^m=\ell(\ell+1)Y_\ell^m.
+\]
+For radius \(R\), the eigenvalue is \(\ell(\ell+1)/R^2\). The keys show \((\ell,m)\): \(m=0\) is axisymmetric; positive \(m\) denotes a cosine in longitude, and negative \(m\) a sine. Each degree has \(2\ell+1\) independent patterns sharing the same eigenvalue. The constant mode is omitted. The keyboard takes 26 patterns beginning at \(\ell=1\), so its last family is only partly represented. Sound again uses \(110\lambda_j/\lambda_1\) Hz.
 
-\[\rho h\,u_{tt}+D\nabla^4u=0,\qquad D=\frac{Eh^3}{12(1-\nu^2)}.\]
+\textbf{Elastic shell} uses a sphere with 20 cm outside diameter and 1 mm wall, giving a midsurface radius of 9.95 cm. The same aluminum properties and MITC4 formulation as the cube give vector modes and physical frequency estimates. The first 26 elastic modes have substantial radial motion and frequencies around 5907--7727 Hz. The closed sphere's curvature couples radial motion to stretching, producing much higher pitches than the cube's low modes.
 
-Here \(\rho\) is density, \(h\) thickness, \(E\) Young's modulus, and \(\nu\) Poisson's ratio. Substituting \(u=\phi\cos(\omega t)\) gives the eigenvalue equation \(D\nabla^4\phi=\rho h\omega^2\phi\).
+Ideal spherical symmetry gives repeated-frequency families. The finite mesh slightly splits these frequencies and selects particular orientations; the numerical modes are labeled \(\phi_j\), rather than being assigned exact harmonic indices. The last family is partial. Purely tangential torsional modes also exist but are outside this selected set; a normal-displacement display would not reveal them.
 
-Primeboard uses a unit square with \textbf{simply supported edges}: displacement and bending moment vanish at the boundary. Its basic shapes are \(\sin(m\pi x)\sin(n\pi y)\), with natural frequencies proportional to \(m^2+n^2\). The integers \(m,n\) count half-waves along the two directions.
+\subsection{Physical modes, readable animation, illustrative sound}
+All physical models use ideal isotropic aluminum with \(E=69\) GPa, \(\nu=0.33\), and \(\rho=2700\) kg/m\(^3\). They describe small, linear vibrations of ideal objects. Actual fixtures, seams, material variation, and air loading can shift measured frequencies.
 
-For \(m<n\), the app uses normalized symmetric and antisymmetric combinations:
+The mode shapes and elastic-model pitches come from these equations, but the visible animation deliberately uses slowly changing strengths rather than rapid mechanical oscillation. Holding raises displayed amplitude as \(\sqrt{e_j}\); after release at \(t_0\), the envelope decays approximately as
+\[
+ A_j(t)=A_j(t_0)e^{-5(t-t_0)}.
+\]
+The cube and sphere never change shape. Sound uses damped modal oscillators at the selected frequencies, with decay chosen for the instrument rather than measured from metal. Sustain keeps the pattern visible while its tone decays. There is no acoustic-radiation or room model, and no claim that the output reproduces a particular struck object.
 
-\[\phi_{mn}^{\pm}=\sqrt2\,[\sin(m\pi x)\sin(n\pi y)\pm\sin(n\pi x)\sin(m\pi y)].\]
+\subsection{Numerical checks and further reading}
+The physical solves check rigid motions, eigen-equation residuals, and mass orthogonality. Mesh refinement changes the first 26 frequencies by at most about 1.18\% for the free plate, 1.16\% for the rounded shell, and 0.71\% for the sphere. The free-plate implementation agrees within 0.71\% with an analytical simply supported benchmark. The spherical-shell frequencies agree within 0.66\% with classical spherical-shell bending theory. These are numerical checks, not experimental calibration.
 
-Diagonal modes are \(\phi_{mm}=2\sin(m\pi x)\sin(m\pi y)\). Hence the key labels \((1,1)\), \((1,2)^+\), \((1,2)^-\), and so on. The first 26 modes are ordered by \(m^2+n^2\).
-
-The three readouts expose different aspects of these shapes:
-
+{\small
 \begin{itemize}
-\tightlist
-\item
-  \textbf{Colored nodes:} overlays each active mode's zero lines in its own color.
-\item
-  \textbf{Vibration strength:} shows long-time mean squared displacement, \(\tfrac12\sum_i e_i\phi_i^2\), bright near antinodes.
-\item
-  \textbf{Moving field:} displays the signed sum \(u=\sum_i\sqrt{e_i}\phi_i\cos(2\pi f_i^{\rm audio}t/200)\).
-\end{itemize}
-
-The moving field uses musical frequencies slowed 200-fold, rather than the plate's natural frequency ratios. These are musically retuned eigenmode shapes. The colored overlays evoke Chladni figures, but do not simulate sand or necessarily trace the zeros of the combined field.
-
-\subsection{3. Rounded cube: eigenmodes on a curved surface}\label{rounded-cube-eigenmodes-on-a-curved-surface}
-
-The cube joins six flat faces, twelve cylindrical edge patches, and eight spherical corner patches. Its closed surface \(S\) has no boundary edges. Modes are computed from the \textbf{Laplace--Beltrami operator}, the surface analogue of the ordinary Laplacian:
-
-\[-\Delta_S\phi_j=\mu_j\phi_j.\]
-
-A triangular finite-element mesh turns this into \(K\phi_j=\mu_jM\phi_j\), where \(K\) is the stiffness matrix and \(M\) supplies area weights. The constant mode is omitted; the first 26 nonconstant modes become \(\phi_1\)--\(\phi_{26}\), ordered by eigenvalue. Symmetry gives some modes equal eigenvalues, so an eigenvalue alone is not a unique label.
-
-For a thin-metal interpretation, the animation uses the simplified bending equation \(\rho h u_{tt}+D\Delta_S^2u=0\). This retains the same eigenfunctions, with frequencies proportional to \(\mu_j\). Displacement amplitudes scale as \(\sqrt{e_j}\mu_1/\mu_j\), making modal energy proportional to the weights in this approximation.
-
-Bright lines show a single mode's stationary nodes, or the instantaneous zeros of a mixture. Motion is slowed and deformation exaggerated for visibility. This is a scalar surface-bending model: full curved-shell elasticity would also include stretching, tangential motion, and curvature coupling. The sound remains the keyboard's musical tuning, rather than calibrated metal-shell resonances.
-
-\vfill
-{\footnotesize\textit{Model notes:} \href{https://primeboard.jacksonwalters.com/data/README.txt}{Light and sound}\enspace$\cdot$\enspace\href{https://primeboard.jacksonwalters.com/modes.txt}{Square plate}\enspace$\cdot$\enspace\href{https://primeboard.jacksonwalters.com/data/modes/README.txt}{Rounded cube}.\quad\href{https://primeboard.jacksonwalters.com/}{primeboard.jacksonwalters.com}}
+\item \href{https://primeboard.jacksonwalters.com/\#the-math}{Primeboard: The math} and \href{https://github.com/DC-Creatives-Club/primeboard}{source code}, including reproducible solvers and asset diagnostics.
+\item \href{https://cie.co.at/datatable/cie-1931-colour-matching-functions-2-degree-observer}{CIE 1931 color-matching functions}, DOI 10.25039/CIE.DS.xvudnb9b.
+\item \href{https://docu.ngsolve.org/ngs24/SaS/plates_derivation.html}{NGSolve: Reissner--Mindlin and Kirchhoff--Love plates}, equations and boundary conditions.
+\item \href{https://repository.library.noaa.gov/view/noaa/34603/noaa_34603_DS1.pdf}{Huang \& Chen (1971), spherical shells}, vacuum bending theory, Eq. 37b.
+\end{itemize}}
 \end{document}
