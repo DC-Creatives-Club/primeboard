@@ -3,6 +3,8 @@ node_modules/
 .venv-modes/
 __pycache__/
 dist/
+out/
+desktop/assets/
 .env
 .env.*
 !.env.example

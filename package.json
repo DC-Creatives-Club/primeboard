@@ -3,12 +3,38 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "A playable spectrum of primes, light, and sound.",
+  "productName": "Primeboard",
+  "main": "desktop/main.mjs",
+  "author": "Jackson Walters",
+  "homepage": "https://primeboard.jacksonwalters.com",
+  "description": "Explore light, vibration modes, and Cantor sets with a musical keyboard.",
   "scripts": {
     "dev": "node scripts/serve.mjs",
     "test": "node --test",
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs",
+    "desktop:start": "electron-forge start",
+    "desktop:package": "electron-forge package",
+    "desktop:make": "electron-forge make",
+    "desktop:checksums": "node scripts/desktop-checksums.mjs"
   },
-  "engines": { "node": ">=22" },
-  "license": "MIT"
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "config": { "forge": "./forge.config.mjs" },
+  "allowScripts": { "electron": true, "electron-winstaller": true },
+  "devDependencies": {
+    "@electron-forge/cli": "8.0.1",
+    "@electron-forge/maker-deb": "8.0.1",
+    "@electron-forge/maker-rpm": "8.0.1",
+    "@electron-forge/maker-squirrel": "8.0.1",
+    "@electron-forge/maker-zip": "8.0.1",
+    "@electron-forge/plugin-fuses": "8.0.1",
+    "@electron/fuses": "2.1.3",
+    "@resvg/resvg-js": "2.6.2",
+    "electron": "45.3.4"
+  },
+  "dependencies": {
+    "electron-squirrel-startup": "1.0.1"
+  }
 }

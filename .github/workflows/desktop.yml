@@ -1,0 +1,50 @@
+name: Desktop builds
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master, codex/desktop-apps]
+    paths: ['web/**', 'desktop/**', 'scripts/desktop-*', 'tests/**', 'package*.json', 'forge.config.mjs', '.github/workflows/desktop.yml']
+  pull_request:
+    paths: ['web/**', 'desktop/**', 'scripts/desktop-*', 'tests/**', 'package*.json', 'forge.config.mjs', '.github/workflows/desktop.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: Linux x64, os: ubuntu-22.04, arch: x64, platform: linux}
+          - {name: Linux ARM64 (Pi 5), os: ubuntu-22.04-arm, arch: arm64, platform: linux}
+          - {name: macOS Apple silicon, os: macos-15, arch: arm64, platform: darwin}
+          - {name: macOS Intel, os: macos-15-intel, arch: x64, platform: darwin}
+          - {name: Windows x64, os: windows-2025, arch: x64, platform: win32}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install Linux packaging tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fakeroot rpm
+      - run: npm ci
+      - run: npm test
+      - run: npm run desktop:make -- --arch=${{ matrix.arch }}
+      - run: npm run desktop:checksums
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Primeboard-${{ matrix.platform }}-${{ matrix.arch }}
+          path: out/make/
+          if-no-files-found: error
+          retention-days: 30

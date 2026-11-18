@@ -9,6 +9,11 @@ The former `synesthesiaer` Python CLI is retired and its legacy files removed.
 This repository no longer builds or publishes a Python package.
 Existing PyPI releases have not been deleted or changed.
 
+Native desktop packages for Linux (x64 and ARM64/Pi 5), macOS (Apple silicon and
+Intel), and Windows (x64) bundle the instrument for offline use. See
+[desktop installation and build instructions](desktop/README.md). The desktop
+build tools are development dependencies; the static website remains unchanged.
+
 ## Run
 
 With Node.js 22 or newer:
