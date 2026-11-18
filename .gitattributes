@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.bin binary
+*.mid binary
+*.png binary
+*.ico binary
+*.icns binary
+web/data/CIE_xyz_1931_2deg.csv -text

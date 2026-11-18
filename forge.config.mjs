@@ -18,12 +18,12 @@ export default {
     { name: '@electron-forge/maker-squirrel', config: { name: 'primeboard', authors: 'Jackson Walters',
       setupIcon: path.resolve('desktop/assets/icon.ico'), noMsi: true } },
     { name: '@electron-forge/maker-deb', config: { options: {
-      name: 'primeboard', productName: 'Primeboard', genericName: 'Mathematical musical instrument',
+      name: 'primeboard', productName: 'Primeboard', bin: 'Primeboard', genericName: 'Mathematical musical instrument',
       icon: path.resolve('desktop/assets/icon.png'), categories: ['AudioVideo', 'Music', 'Education'],
       maintainer: 'Jackson Walters', homepage: 'https://primeboard.jacksonwalters.com',
     } } },
     { name: '@electron-forge/maker-rpm', config: { options: {
-      name: 'primeboard', productName: 'Primeboard', icon: path.resolve('desktop/assets/icon.png'),
+      name: 'primeboard', productName: 'Primeboard', bin: 'Primeboard', icon: path.resolve('desktop/assets/icon.png'),
       categories: ['AudioVideo', 'Music', 'Education'], homepage: 'https://primeboard.jacksonwalters.com',
     } } },
   ],

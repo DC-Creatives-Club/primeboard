@@ -34,8 +34,10 @@ export function externalURL(value) {
 }
 
 export function allowedPermission(permission, requestingURL, contentsURL, isMainFrame = true) {
+  // Chromium uses the shared midiSysex permission prompt even for sysex:false.
+  // The instrument always requests basic MIDI; no outside page gets this grant.
   return isMainFrame !== false && isAppURL(requestingURL) && isAppURL(contentsURL)
-    && ['midi', 'clipboard-sanitized-write', 'fullscreen'].includes(permission);
+    && ['midi', 'midiSysex', 'clipboard-sanitized-write', 'fullscreen'].includes(permission);
 }
 
 export function allowedDownload(value, contentsURL) {

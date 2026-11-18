@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { APP_URL, CONTENT_SECURITY_POLICY, allowedDownload, allowedPermission, assetPath, externalURL, isAppURL } from './security.mjs';
 
 app.setName('Primeboard');
+if (!app.isPackaged) app.setPath('userData', path.join(app.getPath('appData'), 'Primeboard Development'));
 app.setAppUserModelId('com.squirrel.primeboard.Primeboard');
 protocol.registerSchemesAsPrivileged([{
   scheme: 'primeboard', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: true },
@@ -111,10 +112,12 @@ async function start() {
     } catch { return new Response('Not found', { status: 404 }); }
   });
   const ses = session.defaultSession;
-  ses.setPermissionCheckHandler((contents, permission, origin, details) =>
-    allowedPermission(permission, origin, contents?.getURL(), details.isMainFrame));
-  ses.setPermissionRequestHandler((contents, permission, callback, details) =>
-    callback(allowedPermission(permission, details.requestingUrl, contents?.getURL(), details.isMainFrame)));
+  ses.setPermissionCheckHandler((contents, permission, origin, details) => {
+    return allowedPermission(permission, origin, contents?.getURL(), details.isMainFrame);
+  });
+  ses.setPermissionRequestHandler((contents, permission, callback, details) => {
+    callback(allowedPermission(permission, details.requestingUrl, contents?.getURL(), details.isMainFrame));
+  });
   ses.on('will-download', (event, item, contents) => {
     if (!allowedDownload(item.getURL(), contents?.getURL())) { event.preventDefault(); return; }
     item.setSaveDialogOptions({ title: 'Save from Primeboard',

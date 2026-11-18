@@ -39,7 +39,9 @@ the website.
 ## MIDI, recordings, and storage
 
 Use **Connect keyboard**, then press the leftmost physical key to calibrate.
-Basic MIDI is allowed for the bundled instrument; SysEx is denied. No MIDI driver
+MIDI access is allowed only for the bundled instrument, which requests basic
+MIDI with `sysex: false` and ignores SysEx messages. Chromium reports this request
+under its shared `midiSysex` permission name. No MIDI driver
 or extra browser permission prompt is required for a class-compliant controller,
 though the operating system must recognize the device. The Pi needs a working
 desktop session and audio output. Hardware MIDI and audio latency should be

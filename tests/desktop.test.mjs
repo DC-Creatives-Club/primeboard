@@ -18,11 +18,13 @@ test('desktop assets resolve only inside the bundled app', () => {
 
 test('desktop permissions permit basic MIDI from the instrument and reject broader access', () => {
   assert.equal(allowedPermission('midi', APP_URL, APP_URL), true);
+  assert.equal(allowedPermission('midiSysex', APP_URL, APP_URL), true, 'Chromium uses this permission for basic MIDI too.');
   assert.equal(allowedPermission('clipboard-sanitized-write', APP_URL, APP_URL), true);
-  for (const permission of ['midiSysex','media','usb','serial','clipboard-read','geolocation','unknown']) {
+  for (const permission of ['media','usb','serial','clipboard-read','geolocation','unknown']) {
     assert.equal(allowedPermission(permission, APP_URL, APP_URL), false, permission);
   }
   assert.equal(allowedPermission('midi', 'https://example.org', APP_URL), false);
+  assert.equal(allowedPermission('midiSysex', 'https://example.org', APP_URL), false);
   assert.equal(allowedPermission('midi', APP_URL, 'https://example.org'), false);
   assert.equal(allowedPermission('midi', APP_URL, APP_URL, false), false);
   assert.equal(allowedPermission('midi', APP_URL, undefined), false);
