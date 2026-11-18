@@ -1,8 +1,9 @@
 import { KEYS, validateExponents } from './color.js';
 
+const DEFAULT_TONE_FREQUENCIES = Object.freeze(KEYS.map(key => key.audioHz));
 export const BASE_AMPLITUDE = 0.18;
-export function toneAmplitudes(exponents) {
-  validateExponents(exponents);
+export function toneAmplitudes(exponents, keyCount = KEYS.length) {
+  validateExponents(exponents, keyCount);
   // Mean power of A sin(wt) is A²/2, so amplitude grows as sqrt(e).
   return exponents.map(e => BASE_AMPLITUDE * Math.sqrt(e));
 }
@@ -13,7 +14,7 @@ export function outputLimit(sample) {
 }
 
 export class Synth {
-  constructor() { this.context = null; this.voices = new Map(); this.sequenceVoices = new Set(); this.enabled = false; this.volume = 0.25; }
+  constructor() { this.context = null; this.voices = new Map(); this.sequenceVoices = new Set(); this.enabled = false; this.volume = 0.25; this.frequencies = DEFAULT_TONE_FREQUENCIES; }
   async enable() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) throw new Error('Audio is not supported in this browser.');
@@ -57,10 +58,12 @@ export class Synth {
     this.volume = Math.max(0, Math.min(0.5, Number.isFinite(volume) ? volume : 0));
     if (this.context) this.master.gain.setTargetAtTime(this.volume, this.context.currentTime, 0.02);
   }
-  setModel(spec, interaction = 'drive') {
-    if (this.model === spec && this.interaction === interaction) return false;
+  setModel(spec, interaction = 'drive', frequencies = DEFAULT_TONE_FREQUENCIES) {
+    if (!frequencies.length || frequencies.some(f => !Number.isFinite(f) || f <= 0)) throw new RangeError('Expected positive tone frequencies.');
+    if (this.model === spec && this.interaction === interaction && frequencies.length === this.frequencies.length && frequencies.every((f, i) => f === this.frequencies[i])) return false;
     this.stop();
     this.model = spec; this.interaction = interaction;
+    this.frequencies = [...frequencies];
     if (spec) this.resonatorNode?.port.postMessage({ type: 'configure', spec, interaction });
     return true;
   }
@@ -74,7 +77,7 @@ export class Synth {
     const now = this.context.currentTime;
     // Sum independent power-weighted tones. A compressor and final soft limiter
     // handle loud combinations after mixing, separately from the spectral model.
-    const amplitudes = toneAmplitudes(exponents);
+    const amplitudes = toneAmplitudes(exponents, this.frequencies.length);
     exponents.forEach((e, i) => {
       let voice = this.voices.get(i);
       if (!e && voice) { this.release(i); return; }
@@ -83,7 +86,7 @@ export class Synth {
         const oscillator = this.context.createOscillator();
         const gain = this.context.createGain();
         oscillator.type = 'sine';
-        oscillator.frequency.value = KEYS[i].audioHz;
+        oscillator.frequency.value = this.frequencies[i];
         gain.gain.value = 0;
         oscillator.connect(gain); gain.connect(this.compressor); oscillator.start();
         voice = { oscillator, gain }; this.voices.set(i, voice);
@@ -110,11 +113,11 @@ export class Synth {
       return;
     }
     const finish = startAt + (frames.at(-1).beat - fromBeat) / beatsPerSecond;
-    KEYS.forEach((key, i) => {
+    this.frequencies.forEach((frequency, i) => {
       if (!frames.some(frame => frame.exponents[i])) return;
       const oscillator = this.context.createOscillator();
       const gain = this.context.createGain();
-      oscillator.type = 'sine'; oscillator.frequency.value = key.audioHz;
+      oscillator.type = 'sine'; oscillator.frequency.value = frequency;
       gain.gain.value = 0;
       oscillator.connect(gain); gain.connect(this.compressor);
       const voice = { oscillator, gain };

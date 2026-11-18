@@ -5,13 +5,17 @@ import { SONGS, ODE_TO_JOY, SongPlayer, songSpectrum, songFrames } from '../web/
 import { Synth, BASE_AMPLITUDE } from '../web/audio.js';
 import { readFile } from 'node:fs/promises';
 import { generateCatalog } from '../scripts/import-music.mjs';
+import { BRANCHES_RETURN } from '../web/music/cantor-piece.js';
+import { CANTOR_STATE_SIZE, CANTOR_FREQUENCIES, cantorSelection, cantorAudioWeights } from '../web/cantor.js';
+import { fitKeyWeights } from '../web/instrument.js';
 
-test('ten distinct credited songs fit the instrument and finish in silence', () => {
-  assert.equal(SONGS.length, 10);
-  assert.equal(new Set(SONGS.map(song => song.id)).size, 10);
-  assert.equal(new Set(SONGS.map(song => JSON.stringify(song.notes))).size, 10);
+test('eleven distinct credited pieces fit the instrument and finish in silence', () => {
+  assert.equal(SONGS.length, 11);
+  assert.equal(new Set(SONGS.map(song => song.id)).size, 11);
+  assert.equal(new Set(SONGS.map(song => JSON.stringify(song.notes))).size, 11);
   for (const song of SONGS) {
-    assert.ok(song.title && song.composer && song.description && song.source.startsWith('https://'));
+    assert.ok(song.title && song.composer && song.description);
+    assert.ok(song === BRANCHES_RETURN ? song.source === './music/branches-return.txt' : song.source.startsWith('https://'));
     assert.ok(song.bpm > 0 && song.beats > 0 && song.beatsPerBar > 0);
     assert.ok(song.notes.length > 20, song.title);
     for (const note of song.notes) {
@@ -25,6 +29,35 @@ test('ten distinct credited songs fit the instrument and finish in silence', () 
     assert.ok(frames.some(frame => frame.exponents.some(Boolean)), song.title);
     assert.ok(frames.at(-1).exponents.every(e => e === 0), song.title);
   }
+});
+
+test('the Cantor original preserves its chords and reaches the root only at its closing cadence', async () => {
+  const song = BRANCHES_RETURN;
+  assert.ok(SONGS.includes(song));
+  assert.equal(song.view, 'cantor'); assert.equal(song.operation, 'union');
+  assert.equal(song.beats * 60 / song.bpm, 30);
+  assert.ok(song.notes.every(note => note.key !== 0), 'The root must emerge from a union.');
+  const weightsAt = beat => fitKeyWeights(songSpectrum(song, beat), CANTOR_STATE_SIZE);
+  for (const [beat, expected] of [
+    [0.1, ['00']], [2.1, ['00','10']], [10.1, ['0','10']],
+    [14.1, ['000','010','100']], [22.1, ['00','010','100']], [23.1, ['0','100']],
+    [34.1, ['000','010','10']], [44.1, ['00']],
+    [45.1, ['00']], [45.85, ['0']], [46.6, ['']], [47.8, []],
+  ]) assert.deepEqual(cantorSelection(weightsAt(beat), song.operation).result, expected, `beat ${beat}`);
+  const frequenciesAt = beat => cantorAudioWeights(weightsAt(beat), song.operation)
+    .flatMap((power, i) => power ? [CANTOR_FREQUENCIES[i]] : []);
+  assert.deepEqual(frequenciesAt(14.1), [880,1100,1320]);
+  assert.deepEqual([45.1,45.85,46.6].map(frequenciesAt), [[440],[220],[110]]);
+  for (const frame of songFrames(song)) {
+    const result = cantorSelection(fitKeyWeights(frame.exponents, CANTOR_STATE_SIZE), song.operation).result;
+    if (result.includes('')) assert.ok(frame.beat >= 46.5 && frame.beat < 47.65, 'No premature whole-set collapse.');
+  }
+  const resumed = songFrames(song, 45.85);
+  assert.deepEqual(resumed[0].exponents, songSpectrum(song, 45.85));
+  assert.ok(resumed.at(-1).exponents.every(value => value === 0));
+  const credit = await readFile(new URL('../web/music/branches-return.txt', import.meta.url), 'utf8');
+  assert.match(credit, /Original composition by Codex/);
+  assert.match(credit, /AI coding assistant/);
 });
 
 test('bundled arrangements reproduce the checksum-verified score imports', async () => {

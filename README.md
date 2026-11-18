@@ -24,6 +24,38 @@ directly. ES modules and the local CSV fetch require HTTP, rather than `file://`
 
 ## Play
 
+- **Note labels and scale guide** describe the audible pitches in every view.
+  The smaller key label shows the nearest note (A4 = 440 Hz), prefixed with `≈`
+  when more than 5 cents away. Hover or focus a key for its frequency and signed
+  cents offset. Sphere octave shifts update the labels while retaining natural
+  frequencies in the details. Choose a root and a major, natural minor, or
+  pentatonic guide to highlight pitches within 25 cents of a scale note.
+  All keys remain playable at their original frequencies. The count includes
+  repeated pitches; a guide does not guarantee a complete scale in any octave.
+  The guide starts off and never changes audio, recordings, or set operations.
+- **Cantor algebra** shows four middle-third removals above the unit interval.
+  The second settings row selects **Union ∪** (default) or **Intersection ∩**.
+  The QWERTY letters select prefix cylinders in breadth-first tree order:
+  `∅, 0, 1, 00, 01, 10, 11, …`. All prefixes through length 4 fit 31 keys:
+  `[ ] ; , .` extend the letters with `1011, 1100, 1101, 1110, 1111`.
+  `Q` is labeled `∅` for the empty prefix, whose cylinder is the whole Cantor set;
+  there is no separate empty-set key.
+  Union uses a canonical disjoint cover: contained cylinders are redundant,
+  and complete sibling pairs merge recursively into their parent. Thus
+  `C(10) ∪ C(101) = C(10)` and `C(100) ∪ C(101) = C(10)`.
+  Intersection keeps the longest compatible prefix or produces `∅`.
+  The diagram and audio follow the simplified result. Shadows mark
+  its containing intervals; bright bars and finer fragments on `[0,1]`
+  approximate the cylinders while preserving removed gaps. Empty results have no
+  highlights and are silent. No active keys leave the instrument idle and silent.
+  Each resulting cylinder sounds one fixed-amplitude sine tone. Parent tones can
+  emerge even when their keys are not held. For prefix length `n` and binary value
+  `k`, its frequency is `110 * (2^n + k)` Hz; the whole set sounds at 110 Hz.
+  Changing the operation updates held notes immediately and reschedules playing
+  songs at their current position. Sustain, Clear, pointer input, recordings,
+  and video export work in both modes. Takes store key timings and replay/export
+  through the currently selected operation. Examples live in **How to use**;
+  **The math** explains normalization and the unchanged harmonic pitch mapping.
 - **Eigenmodes** preserves the 2D square-plate visualization: Colored nodes,
   Vibration strength, and Mode mixture. Its original presets, freeze control,
   note labels, and optional Prime encoding are available in this view. See the
@@ -34,21 +66,25 @@ directly. ES modules and the local CSV fetch require HTTP, rather than `file://`
   patterns; bright lines trace their zeros. **Pause motion**, **Reset view**, and
   **Save image** support inspection and PNG export. **Light** restores the
   original display. Reduced-motion preferences start the animation paused.
-- **Classical library**, below the keyboard and settings, offers ten public-domain
+- **Music library**, below the keyboard and settings, offers ten public-domain
   themes and excerpts: *Ode to Joy*, *Für Elise*, *Minuet in G*, *Eine kleine
   Nachtmusik*, Bach's *Prelude in C major*, *Gymnopédie No. 1*, *Brahms’ Lullaby*,
   Chopin's *Prelude in A major*, *Old French Song*, and Mozart's *Ah! vous
   dirai-je, maman* theme. These are short arrangements for the 26-key instrument.
+  It also includes *Branches Return*, an original 30-second composition by
+  Codex for Cantor Union. Selecting it opens that view and operation. A melody,
+  stable 4:5:6 chords, and deliberate sibling merges lead to a final root tone;
+  [the prefix score](web/music/branches-return.txt) gives the complete gestures.
   **Play song** synchronizes key highlights, colors, exact integers, and audio.
   Pause/resume, restart, stop, and three speeds are available. Selecting a song
-  stops playback and resets its position while preserving the selected speed;
-  press Play to start it. Playback continues across views and focus changes. Manual key and preset changes
+  resets its position while preserving the selected speed and whether playback
+  is running; otherwise press Play to start it. Playback continues across views and focus changes. Manual key and preset changes
   wait until playback is stopped; use Pause or Stop to control the song. Lead/upper parts use weight 2 and supporting
   parts use weight 1; long song notes keep fixed weights. The hold-intensity
   control continues to apply to live keys. See
   [music provenance and arrangement notes](web/music/README.txt).
 - Type QWERTY letters, click keys, or touch multiple keys. Drag across the keys to play.
-- Every press starts at exponent 1. Holding increases it at a configurable interval
+- In Number, every press starts at exponent 1. Holding increases it at a configurable interval
   (default 500 ms, independent of OS key repeat), up to 32.
 - Toggle **Sustain** (or press Space outside controls) to retain released notes.
   Pressing a sustained key again adds 1 to its exponent.
@@ -175,11 +211,13 @@ database, process manager, or Python environment is needed.
 - `web/instrument.js`: source-aware input ownership, holds, sustain, reset.
 - `web/audio.js`: persistent Web Audio voices, attack/release, bounded output.
 - `web/app.js`: keyboard, pointer, accessibility, graph, and UI integration.
-- `web/song.js`: ten-song library, spectra, and audio-clock transport.
+- `web/song.js`: classical and original music library, spectra, and audio-clock transport.
 - `web/modes.js`: decoding and dynamic mixing of surface modes.
 - `web/resonator.js`, `web/resonator-worklet.js`: analytic damped modal dynamics and sample-rate audio synthesis.
 - `web/plate-modes.js`, `web/plate-display.js`: square-plate basis and all three 2D readouts.
 - `web/cube-view.js`: WebGL2 rendering, rotation, motion, and PNG export.
+- `web/cantor.js`, `web/cantor-view.js`: prefix-cylinder unions and intersections, ternary
+  intervals, and the Cantor construction with projected shadows.
 - `scripts/solve_modes.py`: rounded geometry, FEM eigenproblem, and numerical checks.
 - `web/music/catalog.js`: bundled note events, generated offline; no runtime MIDI parser.
 - `music-sources/`: original public-domain score/MIDI downloads and arrangement manifest.
@@ -249,6 +287,11 @@ preserving the take. Download the completed video using the link that appears.
 
 The secondary Save replay file option downloads versioned `primeboard-performance`
 JSON: timestamped integer `exponents` for Number and continuous `levels` for modal
-views, ending with a silent frame. These files preserve timing rather than rendered
+views, ending with a silent frame. Version 2 keeps 32 weights per frame: 31
+playable inputs and the retired empty-set slot for compatibility with earlier
+takes. New takes leave that slot at zero. Existing version 1 takes with 26
+weights remain playable. The five punctuation keys are used by Cantor and
+ignored in the other views.
+These files preserve timing rather than rendered
 media; playback uses current model, camera, exposure, pitch, and volume settings.
 Upload is not implemented.

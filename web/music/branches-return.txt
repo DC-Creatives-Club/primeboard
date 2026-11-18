@@ -1,0 +1,55 @@
+Branches Return
+==============
+Original composition by Codex (OpenAI's AI coding assistant), November 2026.
+Written for Primeboard at the user's request. This is a newly composed prefix
+score, not an arrangement or transcription of an existing song.
+
+Setting: Cantor algebra, Union.
+Meter: 3/4. Tempo: quarter note = 96. Length: 16 bars / 30 seconds.
+The score and event encoding are included under the repository's MIT license.
+No samples or third-party recordings are used.
+
+The opening motif uses 00, 01, and 10 (440, 550, and 660 Hz) in sequence.
+00 with 10 makes an open fifth. Adding 01 joins the sibling cylinders 00 and
+01 into 0, lowering that voice from 440 to 220 Hz while 10 stays at 660 Hz.
+
+Bars 5-8 answer in the next octave. The chord {000,010,100} sounds at
+880, 1100, and 1320 Hz, a pure 4:5:6 major triad. These cylinders neither
+contain one another nor form sibling pairs, so their union keeps three tones.
+The middle passages contrast this stable chord with controlled downward merges.
+
+The last bar holds 00, then adds 01, then 1. Its union descends through
+C(00), C(0), and the whole Cantor set C: 440 -> 220 -> 110 Hz. The root is
+reached only at this final cadence, without pressing the empty-prefix key.
+A short rest follows. The frequency mapping is unchanged throughout.
+
+Prefix score
+------------
+Each entry is onset : duration : {prefixes}. Times are quarter-note beats
+within a bar, starting at 0. Entries can overlap: earlier keys remain held
+for their written durations, which is essential for the merging gestures.
+The player subtracts a small release gap (at most 0.1 beat) from each entry.
+
+ 1 | 0:1:{00}       1:0.5:{01}     1.5:0.5:{10}    2:1:{00,10}
+ 2 | 0:1.5:{01,10}  1.5:0.5:{10}   2:0.5:{01}      2.5:0.5:{00}
+ 3 | 0:0.5:{00}     0.5:0.5:{10}   1:1:{01}        2:1:{00,10}
+ 4 | 0:3:{00,10}    1:2:{01}
+ 5 | 0:1:{000}      1:0.5:{010}    1.5:0.5:{100}   2:1:{000,010,100}
+ 6 | 0:1.5:{010,100} 1.5:0.5:{001} 2:0.5:{010}     2.5:0.5:{000}
+ 7 | 0:0.5:{100}    0.5:0.5:{010}  1:1:{000}       2:1:{010,100}
+ 8 | 0:3:{000,010,100} 1:2:{001}   2:1:{011}
+ 9 | 0:1:{00}       1:0.5:{01}     1.5:0.5:{10}    2:1:{00,10}
+10 | 0:0.75:{10}    0.75:0.25:{01} 1:0.5:{00}      1.5:0.5:{01}  2:1:{10}
+11 | 0:0.5:{000}    0.5:0.5:{010}  1:1:{100}       2:1:{000,010,100}
+12 | 0:3:{000,010,100} 1:2:{101}
+13 | 0:0.5:{100}    0.5:0.5:{010}  1:0.5:{000}     1.5:0.5:{10}  2:0.5:{01}  2.5:0.5:{00}
+14 | 0:3:{00,10}    1:2:{01}
+15 | 0:2:{000,010,100} 2:1:{000,001}
+16 | 0:2.75:{00}    0.75:2:{01}    1.5:1.25:{1}
+
+Selecting this piece opens Cantor in Union mode. Pause, Resume, Restart,
+Stop, and Tempo use the same player as the classical library. You can switch
+operations or views during playback to hear other interpretations; Union
+with the Cantor frequency mapping is the intended setting.
+
+Executable score: web/music/cantor-piece.js.

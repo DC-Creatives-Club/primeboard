@@ -1,7 +1,8 @@
-Primeboard: classical library
-=============================
+Primeboard: music library
+========================
 
-Ten short themes and excerpts, arranged for the C3-C-sharp5 keyboard.
+Ten classical themes and excerpts, plus one original piece for Cantor Union.
+The classical selections are arranged for the C3-C-sharp5 keyboard.
 The underlying compositions and the selected Mutopia score editions are public
 domain. Each edition's Mutopia page explicitly labels it Public Domain. The
 original source files retain their typesetter credits and dedications.
@@ -102,7 +103,16 @@ under this repository's MIT license; the source editions remain public domain.
    Source: https://www.mutopiaproject.org/ftp/MozartWA/KV265/guitar-duo-complete/guitar-duo-complete-lys.zip
    Source: https://www.mutopiaproject.org/ftp/MozartWA/KV265/guitar-duo-complete/guitar-duo-complete.mid
 
-How the arrangements work
+11. Branches Return — Codex
+   Original composition by Codex (OpenAI's AI coding assistant), November 2026.
+   Written directly for Primeboard's Cantor Union instrument, not adapted from
+   an existing song. Sixteen bars in 3/4 at 96 BPM (30 seconds).
+   A melody and stable harmonic chords alternate with deliberate sibling
+   merges, ending at the 110 Hz root. Selecting it opens Cantor Union.
+   Full prefix score and composition notes: branches-return.txt.
+   Executable score: web/music/cantor-piece.js. Included under the MIT license.
+
+How the classical arrangements work
 -------------------------
 The nine additions are imported from Mutopia's score-generated MIDI files.
 Original downloads are retained under music-sources/ in the repository; that
@@ -128,9 +138,10 @@ square-root audio amplitude. Song weights stay fixed for their written duration;
 the Hold step setting applies to live keyboard playing. Playback uses Web Audio's
 clock for both audio and visuals.
 
-Choose a song, then press Play. Changing songs stops and clears the previous
-song, resets the position, updates the title, composer, source link, duration,
-and BPM choices, and preserves the selected speed multiplier. It never autoplays.
+Choose a song, then press Play. Changing songs clears the previous song,
+resets the position, updates the title, composer, source link, duration,
+and BPM choices, and preserves the selected speed multiplier. If a song was
+already playing, the new selection starts playing; otherwise it waits for Play.
 Pause preserves the position and visual spectrum while silencing scheduled audio.
 Resume continues there; Restart plays from the start. Stop/Escape clears playback.
 Playing a key, loading a number, changing Sustain, or choosing a color preset

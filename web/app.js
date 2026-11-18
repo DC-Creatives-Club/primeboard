@@ -1,30 +1,32 @@
 import { VideoExport, videoExtension } from './video-export.js';
 import { PerformanceRecorder, RECORDING_KEY, MAX_SECONDS, validateRecording, recordingSong } from './recording.js';
-import { loweredPitch } from './pitch.js';
+import { loweredPitch, describePitch, matchesScale, NOTE_NAMES, SCALES } from './pitch.js';
 import { updateSongButton } from './song-controls.js';
 import { FUNDAMENTAL_HZ } from './resonator.js';
-import { KEYS, ROWS, MAX_EXPONENT, parseCMF, matchingAt, spectrumXYZ, primeProduct, displayColor, chromaticity } from './color.js';
-import { Instrument } from './instrument.js';
+import { KEYS, MAX_EXPONENT, parseCMF, matchingAt, spectrumXYZ, primeProduct, displayColor, chromaticity } from './color.js';
+import { Instrument, fitKeyWeights } from './instrument.js';
 import { Synth } from './audio.js';
 import { SONGS, SongPlayer, songSpectrum, songFrames } from './song.js';
 import { MODES } from './plate-modes.js';
 import { ModeDisplay } from './plate-display.js';
 import { CubeView } from './cube-view.js';
+import { CANTOR_KEYS, CANTOR_ROWS, CANTOR_STATE_SIZE, CANTOR_FREQUENCIES, DEFAULT_CANTOR_OPERATION, cantorAudioWeights, prefixLabel } from './cantor.js';
+import { CantorView } from './cantor-view.js';
 
 const $ = id => document.getElementById(id);
-const instrument = new Instrument();
+const instrument = new Instrument(CANTOR_STATE_SIZE);
 const synth = new Synth();
 // Sound is opted in initially; create/resume Web Audio during a user gesture.
 synth.enabled = true;
 const player = new SongPlayer(SONGS[0]);
-const recorder = new PerformanceRecorder();
+const recorder = new PerformanceRecorder(CANTOR_STATE_SIZE);
 let savedRecording = null;
 let recordingNotice = '';
 let videoExport = null, exportPending = false, exportCanvas, exportUntil = 0;
 let exportURL = null;
 try { const raw=localStorage.getItem(RECORDING_KEY); if(raw) savedRecording=validateRecording(JSON.parse(raw)); }
 catch { recordingNotice='Saved recording could not be read. You can make a new take.'; }
-const codeMap = new Map(KEYS.map(key => [key.code, key.index]));
+const codeMap = new Map(CANTOR_KEYS.map(key => [key.code, key.index]));
 const svgNS = 'http://www.w3.org/2000/svg';
 let rows, keyColors, keyButtons, spectrumLines;
 let exposure = 1;
@@ -37,8 +39,14 @@ let cubeView;
 let modesReady = false;
 let visualization = 'cube';
 let spherePitchOctaves = 0;
+let cantorOperation = DEFAULT_CANTOR_OPERATION;
+let scaleGuide = 'off', scaleRoot = 9, hoveredKey = null;
 const sphereElastic = () => visualization === 'sphere' && cubeView?.model === 'elastic';
 const surfaceView = view => view === 'cube' || view === 'sphere';
+const tonalView = () => visualization === 'light' || visualization === 'cantor';
+const viewWeights = weights => fitKeyWeights(weights, visualization === 'cantor' ? CANTOR_STATE_SIZE : KEYS.length);
+const audioWeights = weights => visualization === 'cantor' ? cantorAudioWeights(weights, cantorOperation) : weights;
+let cantorView;
 let plateDisplay;
 const interaction = 'strike';
 let animatePlate = !matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -51,17 +59,19 @@ function normalizedColor(xyz) {
 function makeKeyboard() {
   keyColors = KEYS.map(key => normalizedColor(matchingAt(key.wavelength, rows)));
   keyButtons = [];
-  for (const letters of ROWS) {
+  for (const letters of CANTOR_ROWS) {
     const row = document.createElement('div'); row.className = 'key-row';
     for (const letter of letters) {
-      const key = KEYS.find(k => k.letter === letter);
+      const key = CANTOR_KEYS.find(k => k.letter === letter);
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'key'; button.dataset.index = key.index;
-      button.style.setProperty('--key-color', keyColors[key.index]);
+      button.style.setProperty('--key-color', keyColors[key.index] || '#8cd5dd');
       button.setAttribute('aria-pressed', 'false');
-      button.setAttribute('aria-label', `${letter}: prime ${key.prime}, ${key.wavelength.toFixed(1)} nanometers, ${key.note}`);
-      button.title = `${key.letter} · ${key.prime} · ${key.wavelength.toFixed(1)} nm · ${key.frequencyTHz.toFixed(1)} THz · ${key.note}`;
-      button.innerHTML = `<span class="key-letter">${letter}</span><span class="key-prime">${key.prime}</span><span class="key-note">${key.note}</span><span class="key-frequency"></span><span class="key-exponent"></span>`;
+      button.innerHTML = `<span class="key-letter">${letter}</span><span class="key-prime"></span><span class="key-note"></span><span class="key-pitch"></span><span class="key-exponent"></span>`;
+      button.addEventListener('pointerenter', () => { hoveredKey = button; refreshPitchDetail(); });
+      button.addEventListener('pointerleave', () => { hoveredKey = null; refreshPitchDetail(); });
+      button.addEventListener('focus', refreshPitchDetail);
+      button.addEventListener('blur', refreshPitchDetail);
       // Native Enter/Space or assistive-technology click: a short momentary note.
       // Pointer clicks have already been handled by the pointer-down/up path.
       button.addEventListener('click', event => {
@@ -70,53 +80,81 @@ function makeKeyboard() {
         press(key.index, source);
         setTimeout(() => release(source), 180);
       });
-      keyButtons.push(button); row.append(button);
+      keyButtons[key.index] = button; row.append(button);
     }
     $('keyboard').append(row);
   }
   updateKeyboardLabels();
 }
 
-function keyPitch(i) {
-  if (visualization === 'light') return KEYS[i].note;
-  const spec = visualization === 'modes' ? plateDisplay?.spec : cubeView?.spec;
-  return spec ? `${((spec.fundamentalHz ?? FUNDAMENTAL_HZ) * spec.ratios[i]).toFixed(0)} Hz` : 'loading';
+function keyFrequency(i, audible = true) {
+  if (visualization === 'cantor') return CANTOR_FREQUENCIES[i];
+  if (visualization === 'light') return KEYS[i]?.audioHz;
+  const physicalSpec = visualization === 'modes' ? plateDisplay?.spec : cubeView?.spec;
+  const spec = loweredPitch(physicalSpec, audible && sphereElastic() ? spherePitchOctaves : 0);
+  return spec ? (spec.fundamentalHz ?? FUNDAMENTAL_HZ) * spec.ratios[i] : null;
+}
+function refreshPitchDetail() {
+  const key = document.activeElement?.closest('.key') || hoveredKey;
+  $('key-pitch-detail').textContent = key && !key.hidden ? key.dataset.pitchDetail || '' : '';
 }
 function configureResonator() {
-  const spec = visualization === 'light' ? null : visualization === 'modes' ? plateDisplay?.spec : cubeView?.spec;
+  const spec = tonalView() ? null : visualization === 'modes' ? plateDisplay?.spec : cubeView?.spec;
   const audioSpec = loweredPitch(spec || null, sphereElastic() ? spherePitchOctaves : 0);
-  const changed = synth.setModel(audioSpec, interaction);
+  const changed = synth.setModel(audioSpec, interaction, visualization === 'cantor' ? CANTOR_FREQUENCIES : undefined);
   $('sphere-pitch-control').hidden = !sphereElastic();
   $('hold-speed').closest('label').hidden = visualization !== 'light';
+  $('exposure').closest('label').hidden = visualization === 'cantor';
   if (changed && player.state === 'playing') {
     player.update(synth.context.currentTime);
     if (player.state === 'playing') scheduleSong();
   }
+  return changed;
 }
 const surfaceModeLabel = i => 'φ' + String(i + 1).replace(/[0-9]/g, digit => '₀₁₂₃₄₅₆₇₈₉'[Number(digit)]);
 function keyModeLabel(i) {
   return visualization === 'modes' ? plateDisplay.modeLabel(i) : (cubeView?.data?.metadata.labels?.[i] || surfaceModeLabel(i));
 }
 function updateKeyboardLabels() {
-  const modal = visualization !== 'light';
+  const modal = !tonalView(), cantor = visualization === 'cantor';
+  const guided = scaleGuide !== 'off', scaleName = guided ? `${NOTE_NAMES[scaleRoot]} ${SCALES[scaleGuide].name}` : '';
+  let matchingKeys = 0, knownPitches = 0;
   $('keyboard').classList.toggle('plate-keys', modal);
   $('keyboard').classList.toggle('cube-keys', surfaceView(visualization));
-  $('keyboard').setAttribute('aria-label', modal ? '26 eigenmodes. Type the matching QWERTY letters to play.' : '26 primes. Type the matching QWERTY letters to play.');
+  $('keyboard').classList.toggle('cantor-keys', cantor);
+  $('keyboard').classList.toggle('scale-guide-on', guided);
+  $('scale-root-control').hidden = !guided;
+  $('scale-summary').hidden = !guided;
+  $('keyboard').setAttribute('aria-label', cantor ? `31 prefix cylinders. Hold matching QWERTY keys together to take their ${cantorOperation}.` : modal ? '26 eigenmodes. Type the matching QWERTY letters to play.' : '26 primes. Type the matching QWERTY letters to play.');
   keyButtons.forEach((button, i) => {
-    const key = KEYS[i], label = keyModeLabel(i);
-    button.querySelector('.key-prime').textContent = modal ? label : key.prime;
-    const eigenvalue = surfaceView(visualization) ? cubeView?.data?.eigenvalues[i] : null;
-    const detail = eigenvalue ? `λ = ${(cubeView.model === 'scalar' ? eigenvalue.toFixed(3) : eigenvalue.toExponential(2).replace('e+', 'e'))}` : keyPitch(i);
-    button.querySelector('.key-note').textContent = detail;
-    button.querySelector('.key-frequency').textContent = surfaceView(visualization) ? keyPitch(i) : '';
-    button.setAttribute('aria-label', modal ? `${key.letter}: mode ${label}, ${detail}, ${keyPitch(i)}` : `${key.letter}: prime ${key.prime}, ${key.note}`);
-    button.title = modal ? `${key.letter} · mode ${label} · ${detail} · ${keyPitch(i)}` : `${key.letter} · prime ${key.prime} · ${key.note}`;
-    if (sphereElastic() && spherePitchOctaves) {
-      const audible = cubeView.spec.fundamentalHz * cubeView.spec.ratios[i] / 2 ** spherePitchOctaves;
-      const description = `${button.title} natural · audio ${audible.toFixed(0)} Hz`;
-      button.title = description; button.setAttribute('aria-label', description);
+    button.hidden = !cantor && i >= KEYS.length;
+    if (button.hidden) return;
+    let identity;
+    if (cantor) {
+      const key = CANTOR_KEYS[i], prefix = key.prefix;
+      button.querySelector('.key-prime').textContent = prefixLabel(prefix);
+      button.querySelector('.key-note').textContent = '';
+      identity = `${key.letter} · ${prefix ? `cylinder C(${prefix}), all continuations of ${prefix}` : 'empty prefix ∅, the whole Cantor set'}`;
+    } else {
+      const key = KEYS[i], label = keyModeLabel(i);
+      button.querySelector('.key-prime').textContent = modal ? label : key.prime;
+      const eigenvalue = surfaceView(visualization) ? cubeView?.data?.eigenvalues[i] : null;
+      const detail = eigenvalue ? `λ = ${(cubeView.model === 'scalar' ? eigenvalue.toFixed(3) : eigenvalue.toExponential(2).replace('e+', 'e'))}` : '';
+      button.querySelector('.key-note').textContent = detail;
+      identity = modal ? `${key.letter} · mode ${label}${detail ? ` · ${detail}` : ''}` : `${key.letter} · prime ${key.prime}`;
     }
+    const pitch = describePitch(keyFrequency(i)), match = matchesScale(pitch, scaleRoot, scaleGuide);
+    if (pitch) knownPitches++;
+    if (match) matchingKeys++;
+    button.classList.toggle('scale-match', match);
+    button.querySelector('.key-pitch').textContent = pitch?.label || '—';
+    const natural = sphereElastic() && spherePitchOctaves ? ` · natural ${Number(keyFrequency(i, false).toFixed(3))} Hz` : '';
+    button.dataset.pitchDetail = `${CANTOR_KEYS[i].letter} · ${pitch?.detail || 'Loading pitch…'}${natural}`;
+    button.title = `${identity} · ${pitch?.detail || 'Loading pitch…'}${natural}${guided && pitch ? ` · ${match ? 'matches' : 'outside'} ${scaleName} guide` : ''}`;
+    button.setAttribute('aria-label', button.title);
   });
+  $('scale-summary').textContent = knownPitches ? `${matchingKeys} matching ${matchingKeys === 1 ? 'key' : 'keys'}` : 'Loading pitches…';
+  refreshPitchDetail();
 }
 function makeSpectrum() {
   const grid = $('spectrum-grid');
@@ -137,10 +175,11 @@ function makeSpectrum() {
 
 function render() {
   const inSong = player.state === 'playing' || player.state === 'paused';
-  const e = inSong ? songSpectrum(player.song, player.beat) : instrument.exponents;
-  const modal = inSong ? songSpectrum(player.song, player.beat, true) : instrument.levels;
+  const input = inSong ? songSpectrum(player.song, player.beat) : instrument.exponents;
+  const modalInput = inSong ? songSpectrum(player.song, player.beat, true) : instrument.levels;
+  const e = fitKeyWeights(input), modal = fitKeyWeights(modalInput);
   recorder.capture(performance.now(), instrument.exponents, instrument.levels);
-  const shown = visualization === 'light' ? e : modal;
+  const shown = visualization === 'cantor' ? viewWeights(input) : tonalView() ? e : modal;
   const xyz = spectrumXYZ(e, rows);
   const color = displayColor(xyz, exposure);
   const xy = chromaticity(xyz);
@@ -161,7 +200,7 @@ function render() {
   $('power').textContent = power;
   $('line-count').textContent = `${active} ${active === 1 ? 'LINE' : 'LINES'}`;
   $('gamut-note').textContent = `${color.outOfGamut ? 'Outside sRGB gamut · approximated' : 'sRGB preview'} · exposure compressed`;
-  $('status').textContent = inSong ? `${player.state === 'playing' ? 'PLAYING' : 'PAUSED'} · ${player.song.title.toUpperCase()}` : active ? (instrument.held.size ? 'PLAYING' : 'SUSTAINING') : 'READY TO PLAY';
+  $('status').textContent = inSong ? `${player.state === 'playing' ? 'PLAYING' : 'PAUSED'} · ${player.song.title.toUpperCase()}` : shown.some(Boolean) ? (instrument.held.size ? 'PLAYING' : 'SUSTAINING') : 'READY TO PLAY';
   $('mixture-label').textContent = active ? `${active} ${active === 1 ? 'frequency' : 'frequencies'} · ${power} power ${power === 1 ? 'unit' : 'units'}${e.includes(MAX_EXPONENT) ? ' · hold limit 32' : ''}` : 'Press a key to begin';
   $('sustain').setAttribute('aria-pressed', String(instrument.sustain));
   $('sustain').querySelector('.button-state').textContent = instrument.sustain ? 'on' : 'off';
@@ -170,40 +209,57 @@ function render() {
   $('spectrum-max').textContent = `${peak} power units`;
   shown.forEach((value, i) => {
     const button = keyButtons[i];
+    if (!button) return; // Retired recording slots have no keycap.
     button.classList.toggle('active', value > 0);
     button.setAttribute('aria-pressed', String(value > 0));
-    button.querySelector('.key-exponent').textContent = value > 0 ? visualization !== 'light' ? `×${value.toFixed(1)}` : `^${value}` : '';
-    spectrumLines[i].setAttribute('opacity', value ? 1 : 0);
-    spectrumLines[i].setAttribute('y2', 112 - 96 * value / peak);
+    button.querySelector('.key-exponent').textContent = value > 0 && visualization !== 'cantor' ? visualization !== 'light' ? `×${value.toFixed(1)}` : `^${value}` : '';
+    spectrumLines[i]?.setAttribute('opacity', value ? 1 : 0);
+    spectrumLines[i]?.setAttribute('y2', 112 - 96 * value / peak);
   });
   $('spectrum').setAttribute('aria-label', active ? `Relative spectral power, plot maximum ${peak} units: ${e.map((v, i) => v ? `${KEYS[i].frequencyTHz.toFixed(1)} terahertz at ${v} units` : '').filter(Boolean).join('; ')}` : 'No spectral lines active');
   if (visualization === 'modes') renderPlate(modal);
+  if (visualization === 'cantor') cantorView.update(shown, cantorOperation);
   cubeView?.update(modal);
   if (modesReady) {
     const index = active === 1 ? e.findIndex(Boolean) : -1;
-    const summary = index >= 0 ? `${keyModeLabel(index)} · ${keyPitch(index)}` : `${active} active modes`;
+    const summary = index >= 0 ? `${keyModeLabel(index)} · ${describePitch(keyFrequency(index))?.detail || 'loading pitch'}` : `${active} active modes`;
     $('cube').setAttribute('aria-label', `${visualization === 'sphere' ? 'Sphere' : 'Rounded cube'}, ${summary}`);
   }
-  if (!inSong) synth.sync(visualization === 'light' ? e : modal);
+  if (!inSong) synth.sync(audioWeights(shown));
 }
 
 function selectView(view) {
   visualization = view;
   if (surfaceView(view) && modesReady && cubeView.shape !== view) cubeView.setModel(cubeView.model, view);
   configureResonator();
-  const cube = surfaceView(view), modal = view === 'modes';
-  for (const name of ['light', 'modes', 'cube', 'sphere']) $('view-' + name).setAttribute('aria-pressed', String(view === name));
+  const cube = surfaceView(view), modal = view === 'modes', cantor = view === 'cantor';
+  for (const name of ['light', 'modes', 'cube', 'sphere', 'cantor']) $('view-' + name).setAttribute('aria-pressed', String(view === name));
   $('light-screen').classList.toggle('modes-active', cube);
-  $('light-screen').hidden = modal; $('spectrum-panel').hidden = view !== 'light';
+  $('light-screen').hidden = modal || cantor; $('spectrum-panel').hidden = view !== 'light';
   $('plate-screen').hidden = !modal;
+  $('cantor-screen').hidden = !cantor;
+  $('cantor-options').hidden = !cantor;
   $('cube-options').hidden = !cube; $('cube-actions').hidden = !cube; $('plate-options').hidden = !modal; $('plate-actions').hidden = !modal;
   $('modes-view').hidden = !cube;
   $('light-field').hidden = cube;
-  $('model-label').textContent = cube ? (cubeView?.model === 'scalar' ? 'SCALAR SURFACE MODES' : (view === 'sphere' ? 'SPHERICAL SHELL MODES' : 'ROUNDED-CUBE SHELL MODES')) : modal ? 'SQUARE-PLATE EIGENMODES' : 'CIE 1931 · 2° OBSERVER';
+  $('model-label').textContent = cantor ? 'CANTOR ALGEBRA · CYLINDER SETS' : cube ? (cubeView?.model === 'scalar' ? 'SCALAR SURFACE MODES' : (view === 'sphere' ? 'SPHERICAL SHELL MODES' : 'ROUNDED-CUBE SHELL MODES')) : modal ? 'SQUARE-PLATE EIGENMODES' : 'CIE 1931 · 2° OBSERVER';
   $('surface-name').textContent = view === 'sphere' ? 'SPHERE' : 'ROUNDED CUBE';
   $('cube-options').setAttribute('aria-label', view === 'sphere' ? 'Sphere model' : 'Cube model');
   cubeView?.setEnabled(cube);
   updateKeyboardLabels(); refreshSoundControls(); render();
+}
+
+function selectCantorOperation(operation) {
+  if (operation === cantorOperation) return;
+  cantorOperation = operation;
+  for (const name of ['union', 'intersection']) $('cantor-' + name).setAttribute('aria-pressed', String(operation === name));
+  $('cantor-operation-label').textContent = operation === 'union' ? 'UNION · ∪' : 'INTERSECTION · ∩';
+  updateKeyboardLabels();
+  if (player.state === 'playing') {
+    player.update(synth.context.currentTime);
+    if (player.state === 'playing') { scheduleSong(); return; }
+  }
+  render();
 }
 
 const readouts = {
@@ -273,6 +329,7 @@ function refreshMotionControl() {
 }
 
 function press(index, source) {
+  if (index >= KEYS.length && visualization !== 'cantor') return;
   if (!takeOver()) return;
   if (instrument.press(index, source, performance.now())) { render(); }
 }
@@ -297,7 +354,7 @@ function renderSongControls() {
     $('song-stop').disabled=true;
     $('song-tempo').disabled=true;
     $('song-progress').value=0;
-    $('song-status').textContent='Choose Play to start the classical selection';
+    $('song-status').textContent='Choose Play to start the library selection';
     $('song-time').textContent='';
     return;
   }
@@ -316,6 +373,7 @@ function renderSongSelection() {
   $('song-composer').textContent = player.song.composer;
   $('song-description').textContent = player.song.description;
   $('song-source').href = player.song.source;
+  $('song-source').textContent = player.song.sourceLabel || 'Public-domain score ↗';
   for (const option of $('song-tempo').options) {
     const rate = Number(option.value);
     option.textContent = `${Math.round(player.song.bpm * rate)} BPM`;
@@ -341,7 +399,8 @@ function pauseSong() {
 function scheduleSong() {
   const startAt = synth.context.currentTime + .03;
   player.play(startAt);
-  synth.scheduleSequence(songFrames(player.song, player.beat, visualization !== 'light'), startAt, player.beatsPerSecond);
+  const frames = songFrames(player.song, player.beat, !tonalView()).map(frame => ({ ...frame, exponents: audioWeights(viewWeights(frame.exponents)) }));
+  synth.scheduleSequence(frames, startAt, player.beatsPerSecond);
   renderSongControls(); render();
 }
 async function playSong() {
@@ -426,7 +485,7 @@ function exportFrame() {
     ctx.fillStyle='white';ctx.textAlign='center';ctx.font='32px monospace';
     ctx.fillText(currentNumber,w/2,h/2,w-80);
   } else {
-    const source=visualization==='modes'?$('plate-canvas'):$('cube');
+    const source=visualization==='cantor'?$('cantor-canvas'):visualization==='modes'?$('plate-canvas'):$('cube');
     if(surfaceView(visualization))cubeView.draw();
     const scale=Math.min((w-48)/source.width,(h-80)/source.height);
     const sw=source.width*scale,sh=source.height*scale;
@@ -532,9 +591,13 @@ function bindInputs() {
     spherePitchOctaves = Number(event.target.value);
     configureResonator(); updateKeyboardLabels(); render();
   });
+  $('scale-guide').addEventListener('change', event => { scaleGuide = event.target.value; updateKeyboardLabels(); });
+  $('scale-root').addEventListener('change', event => { scaleRoot = Number(event.target.value); updateKeyboardLabels(); });
   for (const model of ['elastic', 'scalar']) $('cube-' + model).addEventListener('click', () => selectCubeModel(model));
   $('view-light').addEventListener('click', () => selectView('light'));
   $('view-modes').addEventListener('click', () => selectView('modes'));
+  $('view-cantor').addEventListener('click', () => selectView('cantor'));
+  for (const operation of ['union', 'intersection']) $('cantor-' + operation).addEventListener('click', () => selectCantorOperation(operation));
   for (const model of ['supported', 'free']) $('plate-' + model).addEventListener('click', () => selectPlateModel(model));
   $('mode-pause').addEventListener('click', () => {
     cubeView.setPaused(!cubeView.paused); refreshMotionControl();
@@ -549,7 +612,7 @@ function bindInputs() {
       event.preventDefault(); if (!event.repeat) toggleSustain(); return;
     }
     const index = codeMap.get(event.code);
-    if (index === undefined) return;
+    if (index === undefined || (index >= KEYS.length && visualization !== 'cantor')) return;
     event.preventDefault(); if (!event.repeat) press(index, event.code);
   });
   window.addEventListener('keyup', event => release(event.code));
@@ -594,7 +657,7 @@ function bindInputs() {
   document.querySelectorAll('[data-plate-preset]').forEach(button => button.addEventListener('click', () => {
     if (!takeOver()) return; const weights = KEYS.map(() => 0);
     for (const [i,e] of modalPresets[button.dataset.platePreset]) weights[i] = e;
-    instrument.load(weights); render();
+    instrument.load(fitKeyWeights(weights, CANTOR_STATE_SIZE)); render();
   }));
   $('clear').addEventListener('click', clear);
   $('sustain').addEventListener('click', toggleSustain);
@@ -629,6 +692,10 @@ function bindInputs() {
     stopSong(); instrument.clear();
     player.selectSong(song);
     player.rate=Number($('song-tempo').value);
+    if (song.view) {
+      selectCantorOperation(song.operation);
+      selectView(song.view);
+    }
     if (wasPlaying) playSong();
     $('app-message').textContent = '';
     renderSongSelection(); render();
@@ -674,12 +741,12 @@ function bindInputs() {
       else renderRecordingControls();
     }
     const levelsChanged = instrument.tickContinuous(timestamp);
-    if (levelsChanged && visualization !== 'light' && timestamp - lastLevelRender >= 1000 / 30) {
+    if (levelsChanged && !tonalView() && timestamp - lastLevelRender >= 1000 / 30) {
       lastLevelRender = timestamp; render();
     }
     if (player.state === 'playing') {
       player.update(synth.context.currentTime);
-      const spectrum = songSpectrum(player.song, player.beat, visualization !== 'light').join(',');
+      const spectrum = songSpectrum(player.song, player.beat, !tonalView()).join(',');
       if (spectrum !== lastSongSpectrum || player.state === 'ended') {
         lastSongSpectrum = spectrum; render();
       }
@@ -705,6 +772,7 @@ async function start() {
     if (!response.ok) throw new Error(`Color data request returned ${response.status}.`);
     rows = parseCMF(await response.text());
     plateDisplay = new ModeDisplay($('plate-canvas'), rows);
+    cantorView = new CantorView($('cantor-canvas'));
     startFreePlate();
     makeKeyboard(); makeSpectrum();
     for (const song of SONGS) {

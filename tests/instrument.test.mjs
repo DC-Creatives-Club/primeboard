@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Instrument } from '../web/instrument.js';
+import { Instrument, fitKeyWeights } from '../web/instrument.js';
 
 test('holds advance at fixed real-time steps, ignore repeat events, and cap at 32', () => {
   const instrument = new Instrument();
@@ -60,4 +60,18 @@ test('modal holds grow continuously independent of prime steps and frame rate', 
   a.release('q'); assert.equal(a.levels[0],0);
   b.setSustain(true); b.release('q'); assert.ok(b.levels[0]>0);
   b.setSustain(false); assert.equal(b.levels[0],0);
+});
+
+test('view adaptation preserves shared letters and pads or omits Cantor punctuation', () => {
+  const legacy = Array.from({ length: 26 }, (_, i) => i);
+  const extended = fitKeyWeights(legacy, 32);
+  assert.deepEqual(extended.slice(26), Array(6).fill(0));
+  extended[31] = 1;
+  assert.deepEqual(fitKeyWeights(extended), legacy);
+  const instrument = new Instrument(32);
+  instrument.load(extended); extended[31] = 2;
+  assert.equal(instrument.exponents[31], 1);
+  assert.equal(instrument.levels.length, 32);
+  assert.equal(instrument.press(32, 'out-of-range', 0), false);
+  assert.equal(new Instrument().press(26, 'BracketLeft', 0), false);
 });

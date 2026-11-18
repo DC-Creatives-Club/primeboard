@@ -1,10 +1,17 @@
 import { KEYS, MAX_EXPONENT, validateExponents } from './color.js';
 
+// Letter positions are shared across views. Older takes and songs are padded
+// for Cantor; its extra keys are ignored by the 26-key light and modal models.
+export function fitKeyWeights(weights, keyCount = KEYS.length) {
+  return Array.from({ length: keyCount }, (_, i) => weights[i] ?? 0);
+}
+
 // Input source IDs keep a pointer and a physical key from releasing each other.
 export class Instrument {
-  constructor() {
-    this.exponents = Array(KEYS.length).fill(0);
-    this.levels = Array(KEYS.length).fill(0);
+  constructor(keyCount = KEYS.length) {
+    this.keyCount = keyCount;
+    this.exponents = Array(keyCount).fill(0);
+    this.levels = Array(keyCount).fill(0);
     this.sources = new Map();
     this.held = new Map();
     this.sustain = false;
@@ -12,7 +19,7 @@ export class Instrument {
   }
   press(index, source, now) {
     if (this.sources.has(source)) return false;
-    if (!Number.isInteger(index) || index < 0 || index >= KEYS.length) return false;
+    if (!Number.isInteger(index) || index < 0 || index >= this.keyCount) return false;
     this.sources.set(source, index);
     if (!this.held.has(index)) {
       this.exponents[index] = Math.min(MAX_EXPONENT, this.exponents[index] + 1);
@@ -61,7 +68,7 @@ export class Instrument {
     if (!value) this.exponents.forEach((_, i) => { if (!this.held.has(i)) { this.exponents[i] = 0; this.levels[i] = 0; } });
   }
   load(exponents) {
-    validateExponents(exponents);
+    validateExponents(exponents, this.keyCount);
     this.clear();
     this.sustain = true;
     this.exponents = [...exponents];

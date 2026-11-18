@@ -120,7 +120,7 @@ main{padding-top:20px}
 /* A small gap separates the display from the playable keys. */
 .keyboard{padding-top:16px}
 
-.keyboard{padding-bottom:16px}.key-frequency{display:none}.cube-keys .key{height:80px}.cube-keys .key-note{bottom:19px}.cube-keys .key-frequency{display:block;position:absolute;left:2px;right:2px;bottom:5px;text-align:center;font:8px var(--mono);color:#c6c7cf}.plate-keys:not(.cube-keys) .key-note{display:block;font-size:8px;left:2px;right:2px;text-align:center;bottom:5px}
+.keyboard{padding-bottom:16px}.cube-keys .key{height:80px}.cube-keys .key-note{bottom:22px}.plate-keys:not(.cube-keys) .key-note{display:block;font-size:8px;left:2px;right:2px;text-align:center;bottom:5px}
 
 /* Reserve distinct rows for the plate mode and its frequency, including ± labels. */
 .plate-keys:not(.cube-keys) .key{height:76px}
@@ -134,3 +134,29 @@ main{padding-top:20px}
 .recording-panel{margin-top:24px}.recording-panel[hidden]{display:none}#record[aria-pressed=true]{background:#58292d;border-color:#d87e86;color:#ffe4e7}#recording-info{font:11px var(--mono);color:var(--muted);margin-bottom:0}
 
 .video-download{color:var(--accent);text-decoration:underline;font-size:12px}.recording-panel #recording-export{background:var(--accent);color:#292a20}.recording-panel [hidden]{display:none}
+
+/* Prefix cylinders share the physical keyboard and transport of the instrument. */
+.visual-grid:has(#cantor-screen:not([hidden])){grid-template-columns:minmax(0,1fr)}
+.cantor-screen{min-width:0;background:#0c1216}
+.cantor-screen .screen-top{padding-bottom:5px;color:#a8bec1}
+#cantor-canvas{display:block;width:100%;height:306px}
+.cantor-keys .key{--key-color:#8cd5dd!important;height:64px;padding:8px 4px}
+.cantor-keys .key-row:nth-child(2){padding:0 12% 0 4%}
+.cantor-keys .key-row:nth-child(3){padding:0 16.4% 0 8%}
+.cantor-keys .key-prime{align-self:center;font-size:clamp(9px,1.6vw,20px);letter-spacing:.5px}
+.cantor-keys .key.active .key-prime{color:#f5ecc1}
+@media(max-width:720px){.cantor-keys .key-row{gap:3px}.cantor-keys .key{padding-left:0;padding-right:0}.cantor-keys .key-prime{font-size:clamp(7px,2.2vw,16px);letter-spacing:0}}
+
+/* Musical guidance annotates the existing instrument without retuning keys. */
+.scale-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 30px 0;font:10px var(--mono);color:#b9bac1}
+.scale-controls select{min-width:0;max-width:100%;background:#222327;border:1px solid #46474c;border-radius:5px;padding:7px 9px;color:var(--ink);font:11px var(--mono)}
+#scale-root-control{display:flex;align-items:center;gap:8px}
+#scale-summary{margin-left:auto;font-size:9px;color:#bdb98d}
+.keyboard .key-pitch{display:block;position:absolute;left:1px;right:1px;bottom:7px;text-align:center;white-space:nowrap;font:10px var(--mono);line-height:1;color:#c6c7cf}
+.keyboard .key-note:empty{display:none}
+.cantor-keys .key{height:70px}
+.cantor-keys .key-pitch{font-size:clamp(5.5px,1.75vw,10px)}
+.scale-guide-on .key.scale-match:not(.active){border-color:#c5c094;box-shadow:0 3px 0 #0b0c0e,0 0 0 1px #c5c09455}
+.scale-guide-on .key.scale-match .key-pitch{color:#f0e5a7;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+.key-pitch-detail{display:block;min-height:30px;padding:0 30px 12px;font:10px/1.6 var(--mono);color:#b9bac1;overflow-wrap:anywhere}
+@media(max-width:720px){.scale-controls{padding:12px 9px 0;gap:7px;font-size:9px}.scale-controls select{padding:7px 5px;font-size:10px}#scale-summary{font-size:8px}.keyboard .key-pitch{font-size:clamp(7px,1.9vw,10px)}.cantor-keys .key-pitch{font-size:clamp(5.5px,1.75vw,10px)}.key-pitch-detail{padding:0 10px 10px;font-size:9px;min-height:40px}}

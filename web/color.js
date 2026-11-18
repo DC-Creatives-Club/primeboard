@@ -32,9 +32,9 @@ export function matchingAt(wavelength, rows) {
   return rows[lower].slice(1).map((v, j) => v + t * ((rows[Math.min(lower + 1, rows.length - 1)][j + 1]) - v));
 }
 
-export function validateExponents(exponents) {
-  if (exponents.length !== KEYS.length || exponents.some(e => !Number.isInteger(e) || e < 0 || e > MAX_EXPONENT)) {
-    throw new RangeError(`Expected ${KEYS.length} integer exponents from 0 to ${MAX_EXPONENT}.`);
+export function validateExponents(exponents, keyCount = KEYS.length) {
+  if (exponents.length !== keyCount || exponents.some(e => !Number.isInteger(e) || e < 0 || e > MAX_EXPONENT)) {
+    throw new RangeError(`Expected ${keyCount} integer exponents from 0 to ${MAX_EXPONENT}.`);
   }
 }
 

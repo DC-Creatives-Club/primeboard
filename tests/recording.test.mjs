@@ -27,3 +27,23 @@ test('corrupt stored recordings are rejected before playback',()=>{
  const bad=structuredClone(take);bad.frames[0].levels[0]=-1;assert.throws(()=>validateRecording(bad));
  const unordered=structuredClone(take);unordered.frames.reverse();assert.throws(()=>validateRecording(unordered));
 });
+
+test('version 2 preserves all 32 inputs, initial rests, continuous levels and final silence', () => {
+ const recorder = new PerformanceRecorder(32), weights = Array(32).fill(0);
+ recorder.start(0); weights[30] = 1; weights[31] = 1;
+ recorder.capture(500, weights, weights.map(value => value * 1.375));
+ const take = recorder.finish(1500);
+ assert.equal(take.version, 2);
+ assert.deepEqual(validateRecording(JSON.parse(JSON.stringify(take))), take);
+ const song = recordingSong(take);
+ assert.deepEqual(songSpectrum(song, .25), Array(32).fill(0));
+ assert.deepEqual(songSpectrum(song, .75), weights);
+ assert.equal(songSpectrum(song, .75, true)[31], 1.375);
+ assert.deepEqual(songSpectrum(song, 1.5), Array(32).fill(0));
+ assert.equal(songFrames(song, .25)[0].exponents.length, 32);
+ const mixed = structuredClone(take); mixed.frames[1].levels.pop();
+ assert.throws(() => validateRecording(mixed), /weights/);
+ assert.throws(() => validateRecording({ ...take, version: 1 }), /weights/);
+ assert.throws(() => new PerformanceRecorder(31), /26 or 32/);
+ recorder.start(0); assert.throws(() => recorder.capture(0, zero(), zero()), /count mismatch/);
+});

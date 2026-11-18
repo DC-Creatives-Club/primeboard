@@ -1,5 +1,6 @@
 import { KEYS, MAX_EXPONENT } from './color.js';
 import { IMPORTED_SONGS } from './music/catalog.js';
+import { BRANCHES_RETURN } from './music/cantor-piece.js';
 
 // Beethoven's 16-bar theme, transposed G -> C from Mutopia #528's soprano.
 // Durations are quarter-note beats. Harmony is a simple Primeboard arrangement.
@@ -37,13 +38,13 @@ export const ODE_TO_JOY = Object.freeze({
 
 export const SONGS = Object.freeze([ODE_TO_JOY, ...IMPORTED_SONGS.map(song => Object.freeze({
   ...song, notes: Object.freeze(song.notes.map(note => Object.freeze(note))),
-}))]);
+})), BRANCHES_RETURN]);
 
 export function songSpectrum(song, beat, modal = false) {
   if (song.frames) {
     let lo=0,hi=song.frames.length;
     while(lo<hi) { const mid=(lo+hi)>>>1; if(song.frames[mid].beat<=beat)lo=mid+1;else hi=mid; }
-    return lo ? [...song.frames[lo-1][modal ? 'levels' : 'exponents']] : KEYS.map(()=>0);
+    return lo ? [...song.frames[lo-1][modal ? 'levels' : 'exponents']] : Array(song.frames[0]?.exponents.length ?? KEYS.length).fill(0);
   }
   const exponents = KEYS.map(() => 0);
   for (const note of song.notes) {
