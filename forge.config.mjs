@@ -7,6 +7,12 @@ export default {
   packagerConfig: {
     name: 'Primeboard', executableName: 'Primeboard', appBundleId: 'com.jacksonwalters.primeboard',
     appCategoryType: 'public.app-category.music', asar: true,
+    // Sign the finished bundle, after names, plists, fuses, and ASAR integrity change.
+    // This local integrity signature is not a Developer ID / notarized release.
+    osxSign: { identity: '-', identityValidation: false,
+      preAutoEntitlements: false, preEmbedProvisioningProfile: false,
+      optionsForFile: () => ({ hardenedRuntime: false }),
+    },
     icon: path.resolve('desktop/assets/icon'),
     // A small explicit allowlist prevents including sources, credentials, or model tooling.
     ignore: file => file !== '' && !/^\/(web|desktop|node_modules)(\/|$)/.test(file)

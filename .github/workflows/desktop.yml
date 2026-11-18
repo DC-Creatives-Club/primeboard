@@ -41,6 +41,9 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run desktop:make -- --arch=${{ matrix.arch }}
+      - name: Verify Mac bundle signature
+        if: runner.os == 'macOS'
+        run: codesign --verify --deep --strict --verbose=2 "out/Primeboard-darwin-${{ matrix.arch }}/Primeboard.app"
       - run: npm run desktop:checksums
       - uses: actions/upload-artifact@v4
         with:
