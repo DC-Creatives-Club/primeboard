@@ -8,7 +8,7 @@ the system browser.
 ## Downloads and installation
 
 Download an installer from the [Primeboard download page](https://primeboard.jacksonwalters.com/download.html)
-or the [public release](https://github.com/jacksonwalters/primeboard/releases/tag/v0.1.0).
+or the [public release](https://github.com/jacksonwalters/primeboard/releases/tag/v1.0.0).
 No GitHub account is needed. Choose the package for your computer:
 
 | Computer | Download | Installation |
@@ -24,7 +24,7 @@ ZIP bundles are also produced for every target. Extract the entire archive;
 run `Primeboard.app` on Mac, `Primeboard.exe` on Windows, or `Primeboard` on Linux.
 Keep the accompanying runtime files with the executable. Linux packages are the
 preferred installation route because the package manager resolves dependencies.
-For a downloaded Debian package, `sudo apt install ./Primeboard-0.1.0-Linux-arm64.deb`
+For a downloaded Debian package, `sudo apt install ./Primeboard-1.0.0-Linux-arm64.deb`
 installs the Pi build (use the actual downloaded filename).
 
 These initial builds are unsigned and not notarized. macOS Gatekeeper and Windows
@@ -39,24 +39,6 @@ file for integrity checks. The **Desktop builds** workflow builds and tests each
 platform on its native OS. Its temporary CI artifacts are staging outputs, not
 the public download links. Publish the completed installers as a versioned
 release before deploying a download page that points to that version.
-
-### Versioning
-
-The current desktop preview is **v0.1.0**. While Primeboard is in initial
-development, use patch releases such as `0.1.1` for fixes and minor releases
-such as `0.2.0` for feature updates. Version `1.0` is reserved for a future
-stable release; signing and store distribution are separate decisions.
-
-`package.json` is the app version used by the native packagers. For each release,
-update it and the root version entries in `package-lock.json`, then update the
-version and asset links in `web/download.html` and this document. Rebuild all
-five targets, verify their checksums, and publish the installers under a matching
-`vX.Y.Z` GitHub tag before deploying the download page. Each download filename
-includes the version, platform, and architecture. Keep published binaries
-unchanged so older links and checksums remain valid.
-
-The earlier experimental build labeled `v1.0.0` remains in the release archive;
-`v0.1.0` establishes the preview numbering used going forward.
 
 ## MIDI, recordings, and storage
 
