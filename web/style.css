@@ -60,7 +60,7 @@
 @media(max-width:720px){.plate-keys .key-prime{font-size:clamp(8px,2.3vw,13px);letter-spacing:-.8px}}
 
 /* Compact opening composition without changing browser zoom or text scaling. */
-.masthead{height:64px}.masthead .quiet-link{margin-left:0}.masthead .help-link{margin-left:auto}
+.masthead{height:64px}.masthead .quiet-link{margin-left:0}.masthead .download-link{margin-left:auto}
 .intro{margin:18px 0;align-items:center}.intro h1{font-size:28px;letter-spacing:-1px}.intro .eyebrow{display:none}.intro>p{font-size:11px}
 .modes-active .cube-stage{flex:none;height:240px;min-height:240px}.modes-active #modes-view{justify-content:center}
 .spectrum-panel{padding-top:16px}.spectrum-panel #spectrum{height:85px}.mode-panel{margin-top:12px;padding-top:12px}#mode-summary{margin:8px 0}.mode-note{margin:8px 0 4px}

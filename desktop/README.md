@@ -7,7 +7,9 @@ the system browser.
 
 ## Downloads and installation
 
-The **Desktop builds** GitHub Actions workflow creates the following artifacts:
+Download an installer from the [Primeboard download page](https://primeboard.jacksonwalters.com/download.html)
+or the [public release](https://github.com/DC-Creatives-Club/primeboard/releases/tag/v1.0.0).
+No GitHub account is needed. Choose the package for your computer:
 
 | Computer | Download | Installation |
 | --- | --- | --- |
@@ -22,7 +24,7 @@ ZIP bundles are also produced for every target. Extract the entire archive;
 run `Primeboard.app` on Mac, `Primeboard.exe` on Windows, or `Primeboard` on Linux.
 Keep the accompanying runtime files with the executable. Linux packages are the
 preferred installation route because the package manager resolves dependencies.
-For a downloaded Debian package, `sudo apt install ./primeboard_1.0.0_arm64.deb`
+For a downloaded Debian package, `sudo apt install ./Primeboard-1.0.0-Linux-arm64.deb`
 installs the Pi build (use the actual downloaded filename).
 
 These initial builds are unsigned and not notarized. macOS Gatekeeper and Windows
@@ -32,9 +34,11 @@ signature. Do not disable OS security globally. Public distribution should add
 an Apple Developer ID and notarization, and Windows code signing. Releases do not
 auto-update yet; installing a newer version retains the app's local data.
 
-CI artifacts are retained for 30 days. `SHA256SUMS.txt` accompanies each set of
-downloads. Building this workflow does not publish a GitHub Release or deploy
-the website.
+Release downloads are permanent GitHub Release assets, with a `SHA256SUMS.txt`
+file for integrity checks. The **Desktop builds** workflow builds and tests each
+platform on its native OS. Its temporary CI artifacts are staging outputs, not
+the public download links. Publish the completed installers as a versioned
+release before deploying a download page that points to that version.
 
 ## MIDI, recordings, and storage
 
@@ -75,7 +79,8 @@ The default target is the host's OS and architecture. Use `-- --arch=x64` or
 installers on their matching OS; the GitHub workflow supplies all five build
 machines. Linux makers need `fakeroot`, `dpkg`, and `rpm`. Mac DMGs use Apple's
 built-in `hdiutil`. Outputs are under `out/make/`; unpacked applications are
-under `out/Primeboard-<platform>-<arch>/`.
+under `out/Primeboard-<platform>-<arch>/`. Development uses a separate
+`Primeboard Development` profile, so testing leaves installed-app data alone.
 
 Icons are generated from the existing `web/icon.svg`. Only `web/`, `desktop/`,
 the production startup dependency, package metadata, and license are bundled.
@@ -87,4 +92,4 @@ The app uses a private secure `primeboard://app/` origin so ES modules, fetch,
 Web Audio worklets, WebGL, local storage, MIDI, and generated downloads work
 without a network listener. Renderers remain sandboxed with Node integration
 disabled, and only local assets execute. External URLs can only use HTTP(S),
-and only basic MIDI, clipboard writing, and fullscreen permissions are allowed.
+and only MIDI, clipboard writing, and fullscreen permissions are allowed.

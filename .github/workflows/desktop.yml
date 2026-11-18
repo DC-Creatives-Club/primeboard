@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [master, codex/desktop-apps]
-    paths: ['web/**', 'desktop/**', 'scripts/desktop-*', 'tests/**', 'package*.json', 'forge.config.mjs', '.github/workflows/desktop.yml']
+    paths: ['web/**', 'desktop/**', 'scripts/desktop-*', 'tests/**', 'package*.json', 'forge.config.mjs', '.gitattributes', '.github/workflows/desktop.yml']
   pull_request:
-    paths: ['web/**', 'desktop/**', 'scripts/desktop-*', 'tests/**', 'package*.json', 'forge.config.mjs', '.github/workflows/desktop.yml']
+    paths: ['web/**', 'desktop/**', 'scripts/desktop-*', 'tests/**', 'package*.json', 'forge.config.mjs', '.gitattributes', '.github/workflows/desktop.yml']
 
 permissions:
   contents: read
