@@ -3,16 +3,15 @@ import { KEYS, ROWS } from './color.js';
 // All 31 prefixes through depth 4. The original letter addresses stay fixed;
 // punctuation completes the binary tree.
 export const CANTOR_PREFIXES = Object.freeze(Array.from({ length: 31 }, (_, i) => (i + 1).toString(2).slice(1)));
-// Keep the retired empty-set slot in recording state so existing v2 takes
-// retain their set inputs. No physical or onscreen key writes to this slot.
-const legacyEmptyIndex = CANTOR_PREFIXES.length;
-export const CANTOR_STATE_SIZE = legacyEmptyIndex + 1;
-const extraKeys = [['[', 'BracketLeft'], [']', 'BracketRight'], [';', 'Semicolon'], [',', 'Comma'], ['.', 'Period']];
+// The final key is the empty set, distinct from the root's empty prefix.
+export const CANTOR_EMPTY_INDEX = CANTOR_PREFIXES.length;
+export const CANTOR_STATE_SIZE = CANTOR_EMPTY_INDEX + 1;
+const extraKeys = [['[', 'BracketLeft'], [']', 'BracketRight'], [';', 'Semicolon'], [',', 'Comma'], ['.', 'Period'], ['/', 'Slash']];
 export const CANTOR_KEYS = Object.freeze([
   ...KEYS.map(({ index, letter, code }) => ({ index, letter, code })),
   ...extraKeys.map(([letter, code], i) => ({ index: KEYS.length + i, letter, code })),
-].map(key => Object.freeze({ ...key, prefix: CANTOR_PREFIXES[key.index] })));
-export const CANTOR_ROWS = Object.freeze([ROWS[0] + '[]', ROWS[1] + ';', ROWS[2] + ',.']);
+].map(key => Object.freeze({ ...key, prefix: CANTOR_PREFIXES[key.index] ?? null })));
+export const CANTOR_ROWS = Object.freeze([ROWS[0] + '[]', ROWS[1] + ';', ROWS[2] + ',./']);
 export const prefixLabel = prefix => prefix === '' ? '∅' : prefix;
 export const cylinderLabel = prefix => `C(${prefixLabel(prefix)})`;
 export const CANTOR_FUNDAMENTAL_HZ = 110;
@@ -79,7 +78,7 @@ export function cantorSelection(weights, operation = DEFAULT_CANTOR_OPERATION) {
   if (weights.length !== CANTOR_STATE_SIZE) throw new RangeError('Expected 32 state weights.');
   if (!['union', 'intersection'].includes(operation)) throw new RangeError('Unknown Cantor operation.');
   const prefixes = CANTOR_PREFIXES.filter((_, i) => weights[i] > 0);
-  const emptySelected = weights[legacyEmptyIndex] > 0;
+  const emptySelected = weights[CANTOR_EMPTY_INDEX] > 0;
   if (!prefixes.length && !emptySelected) return { prefixes, result: [], kind: 'idle', formula: '', detail: 'No cylinders selected.' };
   const intersection = operation === 'intersection' && !emptySelected ? intersectPrefixes(prefixes) : null;
   const result = operation === 'union' ? unionPrefixes(prefixes) : intersection === null ? [] : [intersection];

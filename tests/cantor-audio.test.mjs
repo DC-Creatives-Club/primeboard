@@ -135,7 +135,7 @@ test('switching sine mappings releases old live and scheduled voices and restore
   assert.equal(synth.voices.get(index('101')).oscillator.frequency.value, 1430);
 });
 
-test('punctuation tones and the retired empty-set slot remain compatible with recorded playback', () => {
+test('punctuation tones and the empty-set key remain compatible with recorded playback', () => {
   const recorder = new PerformanceRecorder(CANTOR_STATE_SIZE);
   recorder.start(0);
   for (const [time, prefixes] of [[0, ['1111']], [250, ['1111', null]], [500, ['1111']], [750, ['1', '1111']]]) {

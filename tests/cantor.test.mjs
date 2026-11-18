@@ -8,16 +8,16 @@ import { CantorView } from '../web/cantor-view.js';
 const cantorSelection = weights => selectCantor(weights, 'intersection');
 const weights = (...prefixes) => Array.from({ length: CANTOR_STATE_SIZE }, (_, i) => prefixes.includes(CANTOR_PREFIXES[i] ?? null) ? 1 : 0);
 
-test('31 keys preserve letter addresses and complete every prefix through depth 4', () => {
+test('32 keys preserve letter addresses and include every prefix through depth 4 plus the empty set', () => {
   assert.equal(CANTOR_PREFIXES.length, 31);
   assert.equal(new Set(CANTOR_PREFIXES).size, 31);
-  assert.equal(CANTOR_KEYS.length, 31);
-  assert.equal(new Set(CANTOR_KEYS.map(key => key.code)).size, 31);
-  assert.equal(new Set(CANTOR_ROWS.join('')).size, 31);
-  assert.ok(CANTOR_KEYS.every(key => key.code !== 'Slash' && key.prefix !== null));
+  assert.equal(CANTOR_KEYS.length, 32);
+  assert.equal(new Set(CANTOR_KEYS.map(key => key.code)).size, 32);
+  assert.equal(new Set(CANTOR_ROWS.join('')).size, 32);
+  assert.deepEqual(CANTOR_KEYS[31], { index: 31, code: 'Slash', letter: '/', prefix: null });
   assert.deepEqual([...CANTOR_ROWS.join('')].sort(), CANTOR_KEYS.map(key => key.letter).sort());
   for (const key of KEYS) assert.deepEqual(CANTOR_KEYS[key.index], { index: key.index, letter: key.letter, code: key.code, prefix: (key.index + 1).toString(2).slice(1) });
-  assert.deepEqual(CANTOR_KEYS.slice(26).map(({ letter, prefix }) => [letter, prefix]), [['[', '1011'], [']', '1100'], [';', '1101'], [',', '1110'], ['.', '1111']]);
+  assert.deepEqual(CANTOR_KEYS.slice(26).map(({ letter, prefix }) => [letter, prefix]), [['[', '1011'], [']', '1100'], [';', '1101'], [',', '1110'], ['.', '1111'], ['/', null]]);
   assert.deepEqual(CANTOR_PREFIXES.slice(0, 7), ['', '0', '1', '00', '01', '10', '11']);
   for (let depth = 0; depth <= 4; depth++) for (const { prefix } of cantorLevel(depth)) assert.ok(CANTOR_PREFIXES.includes(prefix));
   assert.equal(CANTOR_PREFIXES[12], '101'); // D
@@ -44,7 +44,7 @@ test('union removes containment, folds siblings recursively, and defaults to the
   assert.equal(selectCantor(weights('100', '001')).formula, 'C(001) ∪ C(100)');
   assert.equal(selectCantor(weights('0', '1')).formula, 'C(∅) = C');
   assert.equal(selectCantor(weights()).kind, 'idle');
-  // The retired empty-set slot is neutral for union and absorbing for intersection.
+  // The empty-set key is neutral for union and absorbing for intersection.
   assert.deepEqual(selectCantor(weights('101', null)).result, ['101']);
   assert.equal(selectCantor(weights(null)).kind, 'empty');
   assert.deepEqual(selectCantor(weights('101', null), 'intersection').result, []);
@@ -167,12 +167,12 @@ test('changing the operation redraws the same held inputs, including while pause
   assert.equal(draws, 3);
 });
 
-test('punctuation keys retain source ownership, sustain and release without writing the retired slot', () => {
+test('all Cantor keys retain source ownership, sustain and release', () => {
   const instrument = new Instrument(CANTOR_STATE_SIZE);
   for (const { index, code, prefix } of CANTOR_KEYS) {
     instrument.clear(); instrument.press(index, code, 0);
-    assert.equal(cantorSelection(instrument.exponents).result[0], prefix);
-    assert.equal(instrument.exponents[31], 0);
+    assert.deepEqual(cantorSelection(instrument.exponents).result, prefix === null ? [] : [prefix]);
+    assert.equal(instrument.exponents[index], 1);
   }
   instrument.clear();
   instrument.press(30, 'Period', 0); instrument.press(30, 'pointer-1', 0);

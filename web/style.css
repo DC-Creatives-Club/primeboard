@@ -39,10 +39,9 @@
 /* Recovered square-plate views, alongside the rounded surface. */
 
 [hidden]{display:none!important}
-.display-choices{display:flex;align-items:center;gap:16px;padding:14px 22px;border-bottom:1px solid var(--line)}.display-buttons{display:flex;gap:5px}.display-buttons button,.plate-motion-controls button,.plate-presets button{font:11px var(--mono);border:1px solid #46474c;background:#222327;border-radius:5px;padding:8px 12px}.display-buttons button[aria-pressed=true]{border-color:#bdb98d;background:#333329;color:#f2edc9}.view-hint{font-size:10px;color:var(--muted);margin-left:auto}
+.display-choices{display:flex;align-items:center;gap:16px;padding:14px 22px;border-bottom:1px solid var(--line)}.display-buttons{display:flex;gap:5px}.display-buttons button,.plate-motion-controls button,.plate-presets button{font:11px var(--mono);border:1px solid #46474c;background:#222327;border-radius:5px;padding:8px 12px}.display-buttons button[aria-pressed=true]{border-color:#bdb98d;background:#333329;color:#f2edc9}
 .plate-screen{background:#08090b;display:flex;flex-direction:column;min-width:0}.plate-wrap{position:relative;display:flex;align-items:center;justify-content:center;padding:0 20px}.plate-wrap canvas{display:block;width:min(100%,330px);height:auto;aspect-ratio:1;border:1px solid #41434a;background:#000}.plate-wrap p{position:absolute;max-width:70%;text-align:center;pointer-events:none;font:11px var(--mono);color:#9698a1}.plate-legend{font:9px var(--mono);line-height:1.7;color:#b6b7bf;text-align:center;padding:16px 20px 20px;margin-top:auto}
 .plate-panel{padding:22px 23px 18px;border-left:1px solid var(--line);min-width:0}.plate-panel>label{display:flex;align-items:center;gap:12px;margin-top:20px;font-size:11px;color:#a9a9b1}.plate-panel select{flex:1;min-width:0;width:100%;font:11px var(--mono);padding:9px 7px;color:var(--ink);background:#222327;border:1px solid #46474c;border-radius:5px}.plate-panel select:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.plate-description{font-size:11px;line-height:1.8;color:#b1b2bb;min-height:58px;margin:13px 0}.plate-motion-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 15px}.plate-motion-controls span{font:9px var(--mono);color:#aaa99d}.plate-presets{display:flex;gap:6px;margin:13px 0}.plate-presets button{font-size:10px;padding:7px 9px}.active-plate-modes{display:flex;gap:6px;flex-wrap:wrap;max-height:118px;overflow:auto;min-height:32px;align-content:flex-start}.active-plate-modes>p{font:10px var(--mono);color:var(--muted)}.plate-chip{font:9px var(--mono);color:#d1d2d9;background:#222328;border-left:2px solid var(--plate-color);padding:6px 7px;white-space:nowrap}.plate-model-note{font-size:10px;line-height:1.8;color:#9698a1;margin:17px 0}.plate-model-note a,.modal-math a{text-decoration:underline;text-underline-offset:3px}.prime-details{border-top:1px solid var(--line);padding-top:12px}.prime-details summary{font-size:11px;cursor:pointer;color:#c4c4cd}.prime-details summary span{float:right;font:9px var(--mono);color:var(--muted);margin:2px 0 0 6px}.prime-details output{display:block;font:16px var(--mono);overflow-wrap:anywhere;max-height:100px;overflow:auto;margin-top:15px}.prime-details p{font:10px var(--mono);overflow-wrap:anywhere;line-height:1.8;max-height:70px;overflow:auto;color:#b2b3be}.prime-details button{margin-top:3px}.modal-math{grid-column:1/-1}.modal-math .equation{font-size:13px}
-@media(max-width:1050px){.view-hint{display:none}}
 @media(max-width:720px){.display-choices{padding:12px 13px;gap:12px}.display-buttons button{font-size:11px;padding:9px 13px}.plate-panel{border-left:0;border-top:1px solid var(--line);padding:18px 17px}.plate-panel>label{margin-top:14px}.plate-description{min-height:0}.plate-wrap{padding:0 20px}.plate-wrap canvas{max-width:290px}.plate-legend{font-size:8px;padding:12px 15px 15px}.plate-chip{font-size:10px}.active-plate-modes{max-height:104px}.plate-model-note{margin:13px 0}.prime-details summary{min-height:24px}.prime-details summary span{font-size:10px}.modal-math .equation{font-size:11px}}
 
 /* Mode keys emphasize notes; prime values remain in the optional encoding. */
@@ -142,12 +141,21 @@ main{padding-top:20px}
 #cantor-canvas{display:block;width:100%;height:306px}
 .cantor-keys .key{--key-color:#8cd5dd!important;height:64px;padding:8px 4px}
 .cantor-keys .key-row:nth-child(2){padding:0 12% 0 4%}
-.cantor-keys .key-row:nth-child(3){padding:0 16.4% 0 8%}
+.cantor-keys .key-row:nth-child(3){padding:0 8%}
 .cantor-keys .key-prime{align-self:center;font-size:clamp(9px,1.6vw,20px);letter-spacing:.5px}
 .cantor-keys .key.active .key-prime{color:#f5ecc1}
 @media(max-width:720px){.cantor-keys .key-row{gap:3px}.cantor-keys .key{padding-left:0;padding-right:0}.cantor-keys .key-prime{font-size:clamp(7px,2.2vw,16px);letter-spacing:0}}
 
 /* Musical guidance annotates the existing instrument without retuning keys. */
+.midi-controls{display:flex;align-items:center;flex-wrap:wrap;gap:9px;padding:12px 30px;border-top:1px solid var(--line);font:10px var(--mono);color:var(--muted)}
+.midi-controls label{display:flex;align-items:center;gap:6px;min-width:0;max-width:100%}
+.midi-controls button{font:11px var(--mono);border:1px solid #46474c;background:#222327;border-radius:5px;padding:8px 12px}
+.midi-controls button[aria-pressed=true]{border-color:#bdb98d;background:#333329;color:#f2edc9}
+.midi-controls button:disabled{cursor:default}
+.midi-controls select{min-width:0;max-width:210px;background:#222327;border:1px solid #46474c;border-radius:5px;padding:7px;color:var(--ink);font:11px var(--mono)}
+.midi-controls [hidden]{display:none}
+#midi-status:empty{display:none}
+@media(max-width:720px){.midi-controls{padding:12px 15px}}
 .scale-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 30px 0;font:10px var(--mono);color:#b9bac1}
 .scale-controls select{min-width:0;max-width:100%;background:#222327;border:1px solid #46474c;border-radius:5px;padding:7px 9px;color:var(--ink);font:11px var(--mono)}
 #scale-root-control{display:flex;align-items:center;gap:8px}

@@ -12,6 +12,7 @@ import { ModeDisplay } from './plate-display.js';
 import { CubeView } from './cube-view.js';
 import { CANTOR_KEYS, CANTOR_ROWS, CANTOR_STATE_SIZE, CANTOR_FREQUENCIES, DEFAULT_CANTOR_OPERATION, cantorAudioWeights, prefixLabel } from './cantor.js';
 import { CantorView } from './cantor-view.js';
+import { MidiController, midiNoteLabel } from './midi.js';
 
 const $ = id => document.getElementById(id);
 const instrument = new Instrument(CANTOR_STATE_SIZE);
@@ -48,6 +49,7 @@ const viewWeights = weights => fitKeyWeights(weights, visualization === 'cantor'
 const audioWeights = weights => visualization === 'cantor' ? cantorAudioWeights(weights, cantorOperation) : weights;
 let cantorView;
 let plateDisplay;
+let midi;
 const interaction = 'strike';
 let animatePlate = !matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -125,13 +127,23 @@ function updateKeyboardLabels() {
   $('keyboard').classList.toggle('scale-guide-on', guided);
   $('scale-root-control').hidden = !guided;
   $('scale-summary').hidden = !guided;
-  $('keyboard').setAttribute('aria-label', cantor ? `31 prefix cylinders. Hold matching QWERTY keys together to take their ${cantorOperation}.` : modal ? '26 eigenmodes. Type the matching QWERTY letters to play.' : '26 primes. Type the matching QWERTY letters to play.');
+  $('keyboard').setAttribute('aria-label', cantor ? `32 keys: 31 prefix cylinders and the empty set. Hold keys together to take their ${cantorOperation}.` : modal ? '26 eigenmodes. Type the matching QWERTY letters or play the connected MIDI keyboard.' : '26 primes. Type the matching QWERTY letters or play the connected MIDI keyboard.');
   keyButtons.forEach((button, i) => {
     button.hidden = !cantor && i >= KEYS.length;
     if (button.hidden) return;
     let identity;
     if (cantor) {
       const key = CANTOR_KEYS[i], prefix = key.prefix;
+      if (prefix === null) {
+        button.querySelector('.key-prime').textContent = '∅';
+        button.querySelector('.key-note').textContent = '';
+        button.querySelector('.key-pitch').textContent = 'empty set';
+        button.classList.remove('scale-match');
+        button.dataset.pitchDetail = '/ · empty set · no tone';
+        button.title = '/ · empty set ∅ · Intersection becomes empty; Union is unchanged · no tone';
+        button.setAttribute('aria-label', button.title);
+        return;
+      }
       button.querySelector('.key-prime').textContent = prefixLabel(prefix);
       button.querySelector('.key-note').textContent = '';
       identity = `${key.letter} · ${prefix ? `cylinder C(${prefix}), all continuations of ${prefix}` : 'empty prefix ∅, the whole Cantor set'}`;
@@ -209,7 +221,7 @@ function render() {
   $('spectrum-max').textContent = `${peak} power units`;
   shown.forEach((value, i) => {
     const button = keyButtons[i];
-    if (!button) return; // Retired recording slots have no keycap.
+    if (!button) return;
     button.classList.toggle('active', value > 0);
     button.setAttribute('aria-pressed', String(value > 0));
     button.querySelector('.key-exponent').textContent = value > 0 && visualization !== 'cantor' ? visualization !== 'light' ? `×${value.toFixed(1)}` : `^${value}` : '';
@@ -229,6 +241,7 @@ function render() {
 }
 
 function selectView(view) {
+  if (view !== visualization) midi?.reset();
   visualization = view;
   if (surfaceView(view) && modesReady && cubeView.shape !== view) cubeView.setModel(cubeView.model, view);
   configureResonator();
@@ -247,6 +260,7 @@ function selectView(view) {
   $('cube-options').setAttribute('aria-label', view === 'sphere' ? 'Sphere model' : 'Cube model');
   cubeView?.setEnabled(cube);
   updateKeyboardLabels(); refreshSoundControls(); render();
+  renderMidiControls();
 }
 
 function selectCantorOperation(operation) {
@@ -329,13 +343,67 @@ function refreshMotionControl() {
 }
 
 function press(index, source) {
-  if (index >= KEYS.length && visualization !== 'cantor') return;
-  if (!takeOver()) return;
-  if (instrument.press(index, source, performance.now())) { render(); }
+  if (index >= KEYS.length && visualization !== 'cantor') return false;
+  if (!takeOver()) return false;
+  const pressed = instrument.press(index, source, performance.now());
+  if (pressed) render();
+  return pressed;
 }
-function release(source) { if (instrument.release(source)) render(); }
-function clear() { instrument.clear(); plateDisplay?.reset(); cubeView?.reset(); if (player.state !== 'playing') synth.stop(); render(); }
+function release(source, options) { if (instrument.release(source, options)) render(); }
+function clear() { midi?.reset(); instrument.clear(); plateDisplay?.reset(); cubeView?.reset(); if (player.state !== 'playing') synth.stop(); render(); }
 function toggleSustain() { takeOver(); instrument.setSustain(!instrument.sustain); render(); }
+
+function renderMidiControls() {
+  if (!midi) return;
+  $('midi-connect').textContent = midi.enabled || midi.connecting ? 'Disconnect' : 'Connect keyboard';
+  $('midi-connect').disabled = false;
+  const choices = midi.inputs.map(input => ({ id: input.id, label: input.name || input.manufacturer || 'MIDI keyboard' }));
+  const signature = JSON.stringify(choices);
+  const select = $('midi-input');
+  if (select.dataset.choices !== signature) {
+    select.replaceChildren();
+    const placeholder = document.createElement('option'); placeholder.value = ''; placeholder.textContent = 'Select keyboard';
+    select.append(placeholder);
+    for (const { id, label } of choices) {
+      const option = document.createElement('option'); option.value = id; option.textContent = label; select.append(option);
+    }
+    select.dataset.choices = signature;
+  }
+  select.value = midi.input?.id || '';
+  $('midi-input-control').hidden = !midi.enabled || !choices.length;
+  $('midi-learn').hidden = !midi.input;
+  $('midi-learn').textContent = midi.learning ? 'Cancel calibration' : 'Set first key';
+  $('midi-learn').setAttribute('aria-pressed', String(midi.learning));
+  $('midi-range').hidden = !midi.input || midi.firstNote === null || midi.learning;
+  const count = visualization === 'cantor' ? CANTOR_STATE_SIZE : KEYS.length;
+  $('midi-range').textContent = midi.firstNote === null ? '' : `${count} keys · ${midiNoteLabel(midi.firstNote)}–${midiNoteLabel(midi.firstNote + count - 1)}`;
+  $('midi-status').textContent = midi.status;
+}
+
+function bindMidi() {
+  let storage;
+  try { storage = localStorage; } catch { /* MIDI can still work without saved preferences. */ }
+  midi = new MidiController({
+    requestAccess: navigator.requestMIDIAccess?.bind(navigator), storage,
+    onPress: press, onRelease: release, onChange: renderMidiControls,
+    canPlay: () => !document.hidden && document.hasFocus() && !videoExport && !exportPending && takeOver(),
+  });
+  $('midi-connect').addEventListener('click', async () => {
+    if (midi.enabled || midi.connecting) { midi.disconnect(); return; }
+    const connecting = midi.connect();
+    // A MIDI message is not a browser user gesture. Unlock audio on this click.
+    if (midi.supported && synth.enabled && !soundPending && !songPending) {
+      soundPending = true;
+      try { await synth.enable(); render(); }
+      catch (error) { $('app-message').textContent = `Sound could not start: ${error.message}`; }
+      finally { soundPending = false; refreshSoundControls(); }
+    }
+    await connecting;
+  });
+  $('midi-input').addEventListener('change', event => midi.selectInput(event.target.value));
+  $('midi-learn').addEventListener('click', () => midi.learning ? midi.cancelLearn() : midi.learn());
+  renderMidiControls();
+}
 
 function refreshSoundControls() {
   $('sound').setAttribute('aria-pressed', String(synth.enabled));
@@ -412,6 +480,7 @@ async function playSong() {
     await synth.enable();
     refreshSoundControls();
     if (request !== playRequest) return;
+    midi?.reset();
     instrument.clear(); instrument.setSustain(false);
     $('app-message').textContent = '';
     scheduleSong();
@@ -517,7 +586,7 @@ async function exportRecordingVideo() {
   try {
     await synth.enable();
     if(!exportPending)return;
-    stopSong();instrument.clear();plateDisplay?.reset();cubeView?.reset();
+    stopSong();midi?.reset();instrument.clear();plateDisplay?.reset();cubeView?.reset();
     player.selectSong(recordingSong(savedRecording));player.rate=1;
     exportCanvas=document.createElement('canvas');exportCanvas.width=960;exportCanvas.height=720;
     if(cubeView)cubeView.exporting=true;
@@ -541,7 +610,7 @@ function bindInputs() {
   $('record').addEventListener('click',()=>{
     if(recorder.active){finishRecording();return;}
     if(savedRecording && !window.confirm('Replace your saved take? Choose Cancel to export it or save a replay file first.'))return;
-    stopSong(); instrument.clear(); instrument.setSustain(false);
+    stopSong(); midi?.reset(); instrument.clear(); instrument.setSustain(false);
     recorder.start(performance.now());recordingNotice='';render();renderSongControls();
   });
   $('recording-download').addEventListener('click',downloadRecording);
@@ -561,7 +630,7 @@ function bindInputs() {
   const unlockSound = async event => {
     if (!event.isTrusted || !synth.enabled || soundPending || songPending
         || synth.context?.state === 'running'
-        || event.target.closest?.('#sound, #song-play, #song-restart, #recording-play, #recording-export')) return;
+        || event.target.closest?.('#sound, #song-play, #song-restart, #recording-play, #recording-export, #midi-connect')) return;
     soundPending = true;
     try {
       await synth.enable();
@@ -643,7 +712,7 @@ function bindInputs() {
   const stop = () => {
     if(document.hidden)cancelVideoExport();
     if(recorder.active)finishRecording();
-    pointers.clear(); instrument.clear();
+    pointers.clear(); midi?.reset(); instrument.clear();
     if (player.state !== 'playing') synth.stop();
     render();
   };
@@ -657,7 +726,7 @@ function bindInputs() {
   document.querySelectorAll('[data-plate-preset]').forEach(button => button.addEventListener('click', () => {
     if (!takeOver()) return; const weights = KEYS.map(() => 0);
     for (const [i,e] of modalPresets[button.dataset.platePreset]) weights[i] = e;
-    instrument.load(fitKeyWeights(weights, CANTOR_STATE_SIZE)); render();
+    midi?.reset(); instrument.load(fitKeyWeights(weights, CANTOR_STATE_SIZE)); render();
   }));
   $('clear').addEventListener('click', clear);
   $('sustain').addEventListener('click', toggleSustain);
@@ -689,7 +758,7 @@ function bindInputs() {
     const song = SONGS.find(song => song.id === event.target.value);
     if (!song) return;
     const wasPlaying = player.state === 'playing';
-    stopSong(); instrument.clear();
+    stopSong(); midi?.reset(); instrument.clear();
     player.selectSong(song);
     player.rate=Number($('song-tempo').value);
     if (song.view) {
@@ -782,6 +851,7 @@ async function start() {
     }
     bindInputs(); refreshSoundControls();
     document.querySelectorAll('button[disabled]:not([data-mode-control])').forEach(button => { button.disabled = false; });
+    bindMidi();
     $('song-tempo').disabled = false; $('song-select').disabled = false; renderSongSelection();
     renderRecordingControls();
     $('status-dot').classList.add('ready'); $('app-message').textContent = ''; render();

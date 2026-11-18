@@ -39,7 +39,8 @@ directly. ES modules and the local CSV fetch require HTTP, rather than `file://`
   `∅, 0, 1, 00, 01, 10, 11, …`. All prefixes through length 4 fit 31 keys:
   `[ ] ; , .` extend the letters with `1011, 1100, 1101, 1110, 1111`.
   `Q` is labeled `∅` for the empty prefix, whose cylinder is the whole Cantor set;
-  there is no separate empty-set key.
+  `/` adds the empty set as the 32nd key. Its “empty set” caption distinguishes
+  it from the root. It absorbs intersections and leaves unions unchanged.
   Union uses a canonical disjoint cover: contained cylinders are redundant,
   and complete sibling pairs merge recursively into their parent. Thus
   `C(10) ∪ C(101) = C(10)` and `C(100) ∪ C(101) = C(10)`.
@@ -103,6 +104,36 @@ Physical letter positions use `KeyboardEvent.code`, with QWERTY labels. Click th
 keyboard or Enable sound to give it focus. Letter keys continue to work after
 adjusting sliders. Some
 physical keyboards limit simultaneous keys; pointer input and sustain also work.
+
+## USB MIDI keyboards
+
+Connect a class-compliant USB MIDI keyboard and open the app in a browser with
+Web MIDI support (Chrome/Chromium, including on the Raspberry Pi). HTTPS or
+localhost is required. Choose **Connect keyboard**, allow MIDI access, and select
+the device if necessary. On the first connection, press its leftmost key to
+calibrate. This press does not sound or enter a recording. Device selection and
+each device’s first note are saved locally; connecting remains an explicit click.
+Use **Set first key** after changing hardware octave or transpose settings.
+
+With MIDI note `m₀` at the left edge, note `m` selects index `m − m₀`. All 32
+consecutive notes, including black keys, map to Cantor’s 31 prefixes and the
+empty set. The other views use the first 26 notes and ignore the remaining six.
+Out-of-range notes are ignored. These are input addresses: the existing pitches
+and Cantor set operations remain unchanged. Positive velocity has fixed initial
+strength; pitch bend and other expression messages are ignored.
+
+Note-off and zero-velocity note-on release notes. CC64 provides channel-specific
+pedal sustain without continuing hold buildup; the on-screen Sustain button can
+also retain notes after the pedal lifts. CC123 releases notes through sustain,
+and CC120 force-releases the channel. MIDI, QWERTY, and pointer sources cannot
+release one another’s notes. Switching or unplugging a device clears its held
+and sustained notes; reconnecting restores its calibration. Clear, focus loss,
+view changes, and starting playback reset MIDI input. Playback and video export
+block live MIDI. MIDI uses the existing recording and audio paths.
+
+`tests/midi.test.mjs` exercises simulated ports with the real instrument,
+recording, and Cantor audio projection. Physical USB hardware still needs a
+smoke test on the target Pi/browser.
 
 ## The model
 
@@ -209,6 +240,7 @@ database, process manager, or Python environment is needed.
 
 - `web/color.js`: pure spectral math, exact integer encoding, display conversion.
 - `web/instrument.js`: source-aware input ownership, holds, sustain, reset.
+- `web/midi.js`: Web MIDI connection, calibration, device lifecycle, and pedal input.
 - `web/audio.js`: persistent Web Audio voices, attack/release, bounded output.
 - `web/app.js`: keyboard, pointer, accessibility, graph, and UI integration.
 - `web/song.js`: classical and original music library, spectra, and audio-clock transport.
@@ -219,7 +251,7 @@ database, process manager, or Python environment is needed.
 - `web/cantor.js`, `web/cantor-view.js`: prefix-cylinder unions and intersections, ternary
   intervals, and the Cantor construction with projected shadows.
 - `scripts/solve_modes.py`: rounded geometry, FEM eigenproblem, and numerical checks.
-- `web/music/catalog.js`: bundled note events, generated offline; no runtime MIDI parser.
+- `web/music/catalog.js`: bundled note events, generated offline; no runtime MIDI file parser.
 - `music-sources/`: original public-domain score/MIDI downloads and arrangement manifest.
 - `scripts/import-music.mjs`: dependency-free, offline score importer; regenerate with
   `node scripts/import-music.mjs`. Tests verify source checksums and generated data.
@@ -272,7 +304,7 @@ remain illustrative, with no fluid loading or acoustic radiation calculation.
 
 ### Performance recording
 
-Record captures manual key strengths and timing, including Sustain and continuous
+Record captures manual and MIDI key strengths and timing, including Sustain and continuous
 modal buildup. Stop recording saves the latest nonempty take in localStorage;
 replacement and discard require confirmation. Takes are limited to ten minutes
 and finish when the page loses focus or becomes hidden. Storage failure leaves
@@ -288,9 +320,8 @@ preserving the take. Download the completed video using the link that appears.
 The secondary Save replay file option downloads versioned `primeboard-performance`
 JSON: timestamped integer `exponents` for Number and continuous `levels` for modal
 views, ending with a silent frame. Version 2 keeps 32 weights per frame: 31
-playable inputs and the retired empty-set slot for compatibility with earlier
-takes. New takes leave that slot at zero. Existing version 1 takes with 26
-weights remain playable. The five punctuation keys are used by Cantor and
+prefix inputs and the empty-set key, using the same final slot as earlier takes.
+Existing version 1 takes with 26 weights remain playable. The six punctuation keys are used by Cantor and
 ignored in the other views.
 These files preserve timing rather than rendered
 media; playback uses current model, camera, exposure, pitch, and volume settings.
