@@ -42,7 +42,10 @@ export default {
     [FuseV1Options.OnlyLoadAppFromAsar]: true,
   })],
   hooks: {
-    generateAssets: async () => { await import('./scripts/desktop-icons.mjs'); },
+    generateAssets: async () => {
+      await import('./scripts/app-version.mjs');
+      await import('./scripts/desktop-icons.mjs');
+    },
     postMake: async (_config, results) => {
       for (const result of results) if (result.platform === 'darwin') result.artifacts.push(await makeDmg(result));
       return results;

@@ -1,4 +1,5 @@
 import http from 'node:http';
+import './app-version.mjs';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';

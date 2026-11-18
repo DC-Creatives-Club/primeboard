@@ -12,6 +12,7 @@
     "dev": "node scripts/serve.mjs",
     "test": "node --test",
     "build": "node scripts/build.mjs",
+    "version": "node scripts/app-version.mjs",
     "desktop:start": "electron-forge start",
     "desktop:package": "electron-forge package",
     "desktop:make": "electron-forge make",

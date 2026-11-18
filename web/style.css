@@ -169,3 +169,5 @@ main{padding-top:20px}
 .scale-guide-on .key.scale-match .key-pitch{color:#f0e5a7;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
 .key-pitch-detail{display:block;min-height:30px;padding:0 30px 12px;font:10px/1.6 var(--mono);color:#b9bac1;overflow-wrap:anywhere}
 @media(max-width:720px){.scale-controls{padding:12px 9px 0;gap:7px;font-size:9px}.scale-controls select{padding:7px 5px;font-size:10px}#scale-summary{font-size:8px}.keyboard .key-pitch{font-size:clamp(7px,1.9vw,10px)}.cantor-keys .key-pitch{font-size:clamp(5.5px,1.75vw,10px)}.key-pitch-detail{padding:0 10px 10px;font-size:9px;min-height:40px}}
+
+footer .app-version{width:auto;margin:0 0 0 auto;white-space:nowrap;font-size:9px;letter-spacing:0}

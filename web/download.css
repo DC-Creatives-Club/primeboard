@@ -3,3 +3,5 @@
 .current-version{margin:0 0 18px;font-size:14px;color:var(--ink)}.current-version strong{font-family:var(--mono);font-weight:600;color:var(--accent)}
 @media(max-width:1000px){.page{padding:0 28px}.platform{padding:21px}.platforms{gap:12px}.download{padding:12px 10px;font-size:11px}.format{font-size:10px}.release-note{grid-template-columns:145px 1fr}}
 @media(max-width:720px){.page{padding:0 20px}header{height:76px}.brand{font-size:23px}.back{font-size:10px;max-width:110px;text-align:right;line-height:1.6}.intro{padding:39px 0 30px}.intro>p:last-child{font-size:13px}.eyebrow{font-size:9px;margin-bottom:20px}h1{letter-spacing:-1.4px}.platforms{grid-template-columns:1fr;gap:16px}.platform{padding:25px}.platform-mark{margin-bottom:18px}.format{font-size:11px;min-height:0;margin-bottom:20px}.download{font-size:13px;padding:14px}.install{margin-top:19px}.release-note{display:block;margin-top:28px;padding-top:22px}.release-note h2{margin:0 0 12px}.more-downloads{gap:18px;line-height:1.6;margin:20px 0 30px}footer{flex-wrap:wrap;gap:18px}footer>span{width:100%}}
+
+footer .app-version{width:auto;margin:0;white-space:nowrap;font:10px var(--mono);letter-spacing:0}

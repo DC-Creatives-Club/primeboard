@@ -40,6 +40,14 @@ platform on its native OS. Its temporary CI artifacts are staging outputs, not
 the public download links. Publish the completed installers as a versioned
 release before deploying a download page that points to that version.
 
+The footer shows the app version from `package.json`; the download page's
+**Current version** label and installer links describe the published desktop
+release. Advance the app version for web releases with, for example,
+`npm version 1.0.1 --no-git-tag-version`. This updates the package metadata and
+both footers. Development, web builds, and desktop packaging also synchronize
+the footers. Leave the download label and links unchanged until new installers
+are published. Web updates do not require a new desktop release.
+
 ## MIDI, recordings, and storage
 
 Use **Connect keyboard**, then press the leftmost physical key to calibrate.
