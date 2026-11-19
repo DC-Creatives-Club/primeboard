@@ -29,13 +29,16 @@ export class CantorView {
   draw() {
     const w = this.renderWidth ?? this.canvas.clientWidth;
     if (!w) return;
-    const h = 306, dpr = this.renderWidth ? 1 : Math.min(devicePixelRatio || 1, 3);
+    const h = this.renderWidth ? 306 : this.canvas.clientHeight;
+    if (!h) return;
+    const dpr = this.renderWidth ? 1 : Math.min(devicePixelRatio || 1, 3);
     this.canvas.width = Math.round(w * dpr); this.canvas.height = Math.round(h * dpr);
     const ctx = this.canvas.getContext('2d');
     ctx.scale(dpr, dpr);
     ctx.fillStyle = '#0c1216'; ctx.fillRect(0, 0, w, h);
     const left = w < 500 ? 39 : 62, right = w - (w < 500 ? 22 : 38), span = right - left;
-    const x = t => left + t * span, y = depth => 30 + depth * 45, axisY = 264;
+    const verticalScale = h / 306;
+    const x = t => left + t * span, y = depth => (30 + depth * 45) * verticalScale, axisY = 264 * verticalScale;
     const { result } = this.state;
 
     // Soft interval shadows are guides; only the broken bright bars are the
@@ -90,6 +93,6 @@ export class CantorView {
       ctx.fillRect(x(interval.start), axisY - 3, span / interval.denominator, 6);
     }
     ctx.fillStyle = muted; ctx.font = '11px ui-monospace, monospace'; ctx.textAlign = 'center';
-    for (const [tick, label] of [[0, '0'], [1 / 3, '1/3'], [2 / 3, '2/3'], [1, '1']]) ctx.fillText(label, x(tick), axisY + 22);
+    for (const [tick, label] of [[0, '0'], [1 / 3, '1/3'], [2 / 3, '2/3'], [1, '1']]) ctx.fillText(label, x(tick), axisY + Math.min(22, 22 * verticalScale));
   }
 }

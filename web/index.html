@@ -37,6 +37,13 @@
           <span id="midi-range" hidden></span><span id="midi-status" role="status"></span>
         </div>
         </section>
+        <div id="visualization-stage" class="visualization-stage" tabindex="-1" role="region" aria-label="Playable visualization">
+        <div class="fullscreen-controls">
+          <button id="fullscreen-keyboard" type="button" aria-controls="keyboard" aria-pressed="false">Show keyboard</button>
+          <button id="visualization-fullscreen" type="button" aria-label="Enter fullscreen" aria-pressed="false" title="Enter fullscreen">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path class="fullscreen-expand" d="M8 3H3v5m13-5h5v5M3 16v5h5m8 0h5v-5"/><path class="fullscreen-contract" d="M3 8h5V3m8 0v5h5M8 21v-5H3m18 0h-5v5"/></svg>
+          </button>
+        </div>
         <div class="visual-grid">
           <section id="cantor-screen" class="cantor-screen" hidden aria-label="Cantor algebra visualization">
             <div class="screen-top"><span>CANTOR ALGEBRA</span><span id="cantor-operation-label">UNION · ∪</span></div>
@@ -82,6 +89,7 @@
         </div>
         <div id="keyboard" class="keyboard" tabindex="0" aria-label="26 keys from red to violet. Type the matching QWERTY letters to play."></div>
         <output id="key-pitch-detail" class="key-pitch-detail" aria-live="polite"></output>
+        </div>
       </section>
 
       <section id="recording-panel" class="song-player recording-panel" hidden aria-label="Your recording">
@@ -116,7 +124,8 @@
             <li><strong>Explore Cantor algebra.</strong> Choose Union ∪ or Intersection ∩ on the second settings row. Union is the default: S + O keeps both C(100) and C(001), while S + D merges the siblings C(100) and C(101) into C(10). In Intersection, Y + D gives C(10) ∩ C(101) = C(101), and S + O gives ∅. Switch operations while holding keys or during playback to compare the results. Sustain lets you combine keys one at a time.</li>
             <li><strong>Find a cylinder.</strong> The 26 letters follow the binary tree in order: ∅, 0, 1, 00, 01, 10, 11, and so on. The punctuation keys [ ] ; , . complete depth 4 with 1011, 1100, 1101, 1110, 1111, respectively. Q is labeled ∅ for the empty prefix, whose cylinder is the whole Cantor set. D selects 101 and all its infinite continuations. The final / key is labeled ∅ with “empty set” beneath it: it makes an Intersection empty and leaves a Union unchanged.</li>
             <li><strong>Read the Cantor picture.</strong> Rows n=0 through n=4 show repeated middle-third removal. The diagram shows the simplified result: shadows mark the containing intervals and bright fragments mark the cylinders. An empty result has no shadow or highlighted fragments and is silent; no active keys leave the display idle and silent. The finer fragments on [0,1] are an approximation: every branch continues forever. All 31 prefixes through length 4 are playable. Sound uses one tone per cylinder in the simplified result. Deeper prefixes have higher pitches; hover or focus a key to see its frequency.</li>
-            <li><strong>Clear your keys.</strong> Clear or Escape resets your manual mixture and its sound. If a song is playing, use its Stop button instead.</li>
+            <li><strong>Clear your keys.</strong> Clear or Escape resets your manual mixture and its sound. In fullscreen, Escape first returns to the regular view. If a song is playing, use its Stop button instead.</li>
+            <li><strong>Play in fullscreen.</strong> Use the expand button in the visualization’s upper-right corner. Your computer keyboard, MIDI controller, songs, and recordings keep playing. Show keyboard brings back the touch keys. Use the exit button or Escape to return without clearing your notes. On browsers without native fullscreen, the visualization fills the browser window.</li>
             <li><strong>Explore the display.</strong> Drag the cube or sphere to rotate it; when it has keyboard focus, use arrow keys or Home. Pause motion freezes only the display. The second selector row chooses the surface or plate model and the plate display. Free plate uses a freely suspended aluminum sheet; Simply supported keeps the ideal supported-edge patterns. Scalar surface shows simpler mathematical patterns; Elastic shell uses the metal model. In Flat plate, Colored nodes overlays the individual patterns, Mode mixture adds their signed shapes, and Vibration strength shows the square of that mixture. The first three displays show readable strengths and fades, not fast physical vibration.</li>
             <li><strong>Adjust sound.</strong> Sound starts on your first interaction. Use Sound on to mute, Enable sound to unmute, and Sound volume to adjust loudness. Elastic shell pitches are calculated resonances; Scalar surface uses illustrative pitches. In Elastic shell, the key’s λ label is the squared angular frequency, not its frequency in Hz. For the elastic sphere, Sound pitch can lower the audio by two or three octaves; note labels follow the audible pitch, and key details show both audible and natural frequencies.</li>
             <li><strong>Record a performance.</strong> Press Record, play the keys, then Stop recording. Your latest take is saved in this browser; Export video saves the current visualization with sound (MP4 or WebM, depending on your browser). Export renders silently with a progress bar, without replaying the take. Speed depends on your device and visualization. You can cancel without losing the recording. Keep the page open until the download is ready. Save replay file keeps the key timings for a future replay. Replay it through any view. Recording stops after ten minutes or when you leave the page. Before replacing a take, you can export it or save its replay file.</li>
@@ -201,7 +210,7 @@
       <p id="app-message" class="app-message" role="status">Loading the color-matching functions…</p>
       <noscript><p>Primeboard needs JavaScript to mix light and play sound. Please enable JavaScript and reload.</p></noscript>
     </main>
-    <footer><a href="https://jacksonwalters.com">An experiment by Jackson Walters <span aria-hidden="true">↗</span></a><span class="app-version" data-app-version aria-label="App version">v1.3.0</span><a href="https://github.com/jacksonwalters/primeboard">Source ↗</a></footer>
+    <footer><a href="https://jacksonwalters.com">An experiment by Jackson Walters <span aria-hidden="true">↗</span></a><span class="app-version" data-app-version aria-label="App version">v1.3.1</span><a href="https://github.com/jacksonwalters/primeboard">Source ↗</a></footer>
   </div>
 </body>
 </html>

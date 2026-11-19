@@ -8,6 +8,7 @@ import { FUNDAMENTAL_HZ } from './resonator.js';
 import { KEYS, MAX_EXPONENT, parseCMF, matchingAt, spectrumXYZ, primeProduct, displayColor, chromaticity } from './color.js';
 import { Instrument, fitKeyWeights } from './instrument.js';
 import { bindPointerKeyboard } from './pointer-keyboard.js';
+import { bindVisualizationFullscreen } from './fullscreen.js';
 import { Synth } from './audio.js';
 import { shouldUnlockAudio } from './audio-gesture.js';
 import { SONGS, SongPlayer, songSpectrum, songFrames } from './song.js';
@@ -696,9 +697,11 @@ function bindInputs() {
   });
   $('mode-reset').addEventListener('click', () => cubeView.resetCamera());
   $('mode-save').addEventListener('click', () => cubeView.saveImage(currentNumber));
+  const fullscreen = bindVisualizationFullscreen($('visualization-stage'), $('visualization-fullscreen'), $('fullscreen-keyboard'));
   window.addEventListener('keydown', event => {
+    if (fullscreen.handleEscape(event)) return;
     if(videoExport)return;
-    if (event.code === 'Escape') { clear(); return; }
+    if (event.code === 'Escape') { if (!event.repeat) clear(); return; }
     if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey || typingTarget(event.target)) return;
     if (event.code === 'Space' && !event.target.closest('button, summary, a')) {
       event.preventDefault(); if (!event.repeat) toggleSustain(); return;
@@ -717,7 +720,7 @@ function bindInputs() {
     if (player.state !== 'playing') synth.stop();
     render();
   };
-  window.addEventListener('blur', stop);
+  window.addEventListener('blur', () => fullscreen.handleBlur(stop));
   document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
   window.addEventListener('pagehide', () => { cancelVideoExport(); stop(); });
   $('plate-readout').addEventListener('change', () => { configureResonator(); render(); $('keyboard').focus({ preventScroll: true }); });

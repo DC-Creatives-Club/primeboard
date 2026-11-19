@@ -129,7 +129,7 @@ test('diagram and readout depend only on the intersection for every pair and lar
       set: (_, name, value) => { commands.push([name, value === gradient ? 'gradient' : value]); return true; },
       get: (_, name) => (...args) => { commands.push([name, ...args]); if (name === 'createLinearGradient') return gradient; },
     });
-    const canvas = { clientWidth: 1000, getContext: () => context };
+    const canvas = { clientWidth: 1000, clientHeight: 306, getContext: () => context };
     CantorView.prototype.draw.call({ canvas, state });
     return { commands, formula: state.formula };
   };
@@ -152,6 +152,32 @@ test('diagram and readout depend only on the intersection for every pair and lar
   assert.deepEqual(render(['100', '101'], 'union'), render(['10']));
   assert.deepEqual(render(cantorLevel(4).map(({ prefix }) => prefix), 'union'), render(['']));
   assert.notDeepEqual(render(['100', '001'], 'union').commands, empty.commands);
+});
+
+test('Cantor drawing fits resized viewports while video export retains its fixed dimensions', t => {
+  const originalDpr = Object.getOwnPropertyDescriptor(globalThis, 'devicePixelRatio');
+  Object.defineProperty(globalThis, 'devicePixelRatio', { value: 2, configurable: true });
+  t.after(() => {
+    if (originalDpr) Object.defineProperty(globalThis, 'devicePixelRatio', originalDpr);
+    else delete globalThis.devicePixelRatio;
+  });
+  const labels = [];
+  const context = new Proxy({}, { get: (_, name) => (...args) => {
+    if (name === 'fillText') labels.push(args);
+    if (name === 'createLinearGradient') return { addColorStop() {} };
+  } });
+  const canvas = { clientWidth: 390, clientHeight: 513, getContext: () => context };
+  const view = { canvas, state: selectCantor(weights('101'), 'union') };
+  for (const [width, height] of [[390, 513], [844, 146], [1440, 850], [1000, 306]]) {
+    canvas.clientWidth = width; canvas.clientHeight = height; labels.length = 0;
+    CantorView.prototype.draw.call(view);
+    assert.equal(canvas.width, width * 2); assert.equal(canvas.height, height * 2);
+    assert.ok(labels.length > 0);
+    assert.ok(labels.every(([, x, y]) => x >= 0 && x <= width && y >= 0 && y < height));
+  }
+  view.renderWidth = 912;
+  CantorView.prototype.draw.call(view);
+  assert.equal(canvas.width, 912); assert.equal(canvas.height, 306);
 });
 
 test('changing the operation redraws the same held inputs, including while paused', () => {

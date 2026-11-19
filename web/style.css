@@ -192,3 +192,41 @@ footer .app-version{width:auto;margin:0 0 0 auto;white-space:nowrap;font-size:9p
 
 #export-progress{display:block;grid-column:1/-1;width:100%;height:5px;margin:0;accent-color:var(--accent)}
 #export-progress[hidden]{display:none}
+
+/* Fullscreen keeps the same canvases, keyboard, and running performance. */
+.visualization-stage{position:relative;outline:none}
+.fullscreen-controls{position:absolute;top:8px;right:8px;z-index:5;display:flex;gap:8px}
+.fullscreen-controls button{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:8px;border:1px solid #464c51;border-radius:7px;background:#161c20e8;color:#c3cbce;font:10px var(--mono);cursor:pointer;touch-action:manipulation}
+.fullscreen-controls button:hover{background:#303a40;color:#fff}
+.fullscreen-controls button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.fullscreen-controls svg{pointer-events:none}
+.fullscreen-contract,#fullscreen-keyboard{display:none}
+.visualization-stage .surface-heading{min-height:58px;align-items:center;padding-right:48px}
+.visualization-stage .screen-top,.visualization-stage .panel-heading{min-height:60px;padding-right:62px}
+body.visualization-fullscreen{overflow:hidden}
+.visualization-stage.is-fullscreen{position:fixed;inset:0;z-index:1000;width:100%;height:100vh;height:100dvh;display:flex;flex-direction:column;background:#08090b;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);box-sizing:border-box;overflow:hidden}
+.is-fullscreen .fullscreen-controls{top:max(8px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right))}
+.is-fullscreen .fullscreen-expand{display:none}
+.is-fullscreen .fullscreen-contract,.is-fullscreen #fullscreen-keyboard{display:block}
+.is-fullscreen .visual-grid{flex:1;min-height:0;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr);border:0;overflow:hidden}
+.is-fullscreen .screen-top,.is-fullscreen .screen-bottom,.is-fullscreen .surface-heading,.is-fullscreen .cube-gesture,.is-fullscreen .plate-legend,.is-fullscreen .spectrum-panel,.is-fullscreen .scale-controls,.is-fullscreen .key-pitch-detail{display:none}
+.is-fullscreen .light-screen,.is-fullscreen #modes-view,.is-fullscreen .cube-stage{min-height:0}
+.is-fullscreen #product{font-size:clamp(64px,12vmin,160px)}
+.is-fullscreen #product.medium{font-size:clamp(32px,6vmin,72px)}
+.is-fullscreen #product.long{font-size:clamp(16px,2.5vmin,28px);max-height:40vh}
+.is-fullscreen .light-orb{width:clamp(160px,40vmin,480px);height:clamp(160px,40vmin,480px)}
+.is-fullscreen .modes-active .cube-stage{flex:1;height:auto;min-height:0}
+.is-fullscreen .plate-screen{min-height:0}
+.is-fullscreen .plate-wrap{flex:1;min-height:0;padding:16px}
+.is-fullscreen .plate-wrap canvas{width:100%;height:100%;max-width:none;max-height:100%;object-fit:contain;border:0}
+.is-fullscreen .cantor-screen{display:flex;flex-direction:column;min-height:0;padding-top:50px}
+.is-fullscreen #cantor-canvas{flex:1;min-height:0;height:100%}
+.is-fullscreen:not(.show-fullscreen-keys) .keyboard{display:none}
+.is-fullscreen .keyboard{flex:none;width:100%;max-width:1100px;align-self:center;box-sizing:border-box;background:#111214}
+@media(max-height:600px){
+  .is-fullscreen .keyboard{padding-top:6px;padding-bottom:2px}
+  .is-fullscreen .keyboard .key{height:54px}
+  .is-fullscreen .keyboard .key-pitch,.is-fullscreen .keyboard .key-note{display:none}
+  .is-fullscreen .keyboard .key-prime{top:20px;bottom:auto}
+  .is-fullscreen .keyboard .key-exponent{top:auto;bottom:3px;font-size:7px}
+}
