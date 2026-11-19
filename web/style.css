@@ -174,5 +174,21 @@ main{padding-top:20px}
 
 footer .app-version{width:auto;margin:0 0 0 auto;white-space:nowrap;font-size:9px;letter-spacing:0}
 
+/* Phone keys reserve separate rows for identity, pitch, and held strength.
+   Long eigenvalues remain in the key detail readout and accessible label. */
+@media(max-width:720px){
+  .keyboard{padding-left:6px;padding-right:6px}
+  .keyboard .key-row{gap:3px}
+  .keyboard .key{height:76px;padding:7px 1px;overflow:hidden}
+  .keyboard .key-letter{align-self:center;margin:0;font-size:8px;line-height:1}
+  .keyboard .key-prime{position:absolute;top:24px;bottom:auto;left:1px;right:1px;display:block;text-align:center;font-size:clamp(11px,3vw,16px);line-height:1;letter-spacing:0;white-space:nowrap}
+  .keyboard .key-note{display:none}
+  .keyboard .key-pitch{bottom:21px;font-size:clamp(7px,1.9vw,10px);line-height:1.2}
+  .keyboard .key-exponent{top:auto;bottom:5px;left:1px;right:1px;text-align:center;font-size:clamp(6px,1.8vw,9px);line-height:1}
+  .keyboard.plate-keys:not(.cube-keys) .key-prime{top:22px;white-space:normal;font-size:clamp(7px,1.9vw,11px);line-height:1.15}
+  .keyboard.cantor-keys .key-prime{top:26px;font-size:clamp(7px,2.2vw,16px)}
+  .keyboard.cantor-keys .key-pitch{bottom:8px;white-space:normal;font-size:clamp(5.5px,1.75vw,10px)}
+}
+
 #export-progress{display:block;grid-column:1/-1;width:100%;height:5px;margin:0;accent-color:var(--accent)}
 #export-progress[hidden]{display:none}

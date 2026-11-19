@@ -137,7 +137,7 @@ function updateKeyboardLabels() {
   keyButtons.forEach((button, i) => {
     button.hidden = !cantor && i >= KEYS.length;
     if (button.hidden) return;
-    let identity;
+    let identity, measurement = '';
     if (cantor) {
       const key = CANTOR_KEYS[i], prefix = key.prefix;
       if (prefix === null) {
@@ -158,6 +158,7 @@ function updateKeyboardLabels() {
       button.querySelector('.key-prime').textContent = modal ? label : key.prime;
       const eigenvalue = surfaceView(visualization) ? cubeView?.data?.eigenvalues[i] : null;
       const detail = eigenvalue ? `λ = ${(cubeView.model === 'scalar' ? eigenvalue.toFixed(3) : eigenvalue.toExponential(2).replace('e+', 'e'))}` : '';
+      measurement = detail;
       button.querySelector('.key-note').textContent = detail;
       identity = modal ? `${key.letter} · mode ${label}${detail ? ` · ${detail}` : ''}` : `${key.letter} · prime ${key.prime}`;
     }
@@ -167,7 +168,7 @@ function updateKeyboardLabels() {
     button.classList.toggle('scale-match', match);
     button.querySelector('.key-pitch').textContent = pitch?.label || '—';
     const natural = sphereElastic() && spherePitchOctaves ? ` · natural ${Number(keyFrequency(i, false).toFixed(3))} Hz` : '';
-    button.dataset.pitchDetail = `${CANTOR_KEYS[i].letter} · ${pitch?.detail || 'Loading pitch…'}${natural}`;
+    button.dataset.pitchDetail = `${CANTOR_KEYS[i].letter}${measurement ? ` · ${measurement}` : ''} · ${pitch?.detail || 'Loading pitch…'}${natural}`;
     button.title = `${identity} · ${pitch?.detail || 'Loading pitch…'}${natural}${guided && pitch ? ` · ${match ? 'matches' : 'outside'} ${scaleName} guide` : ''}`;
     button.setAttribute('aria-label', button.title);
   });
