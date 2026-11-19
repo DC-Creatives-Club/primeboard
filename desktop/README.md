@@ -16,7 +16,6 @@ No GitHub account is needed. Choose the package for your computer:
 | --- | --- | --- |
 | Raspberry Pi 5 with 64-bit Raspberry Pi OS | Linux arm64 `.deb` | Install the package, then launch Primeboard from the applications menu. |
 | Debian or Ubuntu PC | Linux x64 `.deb` | Install the package, then launch Primeboard from the applications menu. |
-| Fedora / RPM-based Linux | Matching architecture `.rpm` | Install with the system package manager. |
 
 ZIP bundles are also produced for both targets. Extract the entire archive
 and run `Primeboard`.
@@ -80,7 +79,7 @@ npm run desktop:checksums
 The default target is the host's OS and architecture. Use `-- --arch=x64` or
 `-- --arch=arm64` for packaging another supported architecture. Build native
 Linux installers on Linux; a manual GitHub workflow run supplies both Linux
-build architectures. Linux makers need `fakeroot`, `dpkg`, and `rpm`.
+build architectures. Linux makers need `fakeroot` and `dpkg`.
 Outputs are under `out/make/`; unpacked applications are
 under `out/Primeboard-<platform>-<arch>/`. Development uses a separate
 `Primeboard Development` profile, so testing leaves installed-app data alone.
