@@ -40,6 +40,13 @@ testing on physical hardware. Temporary CI artifacts are staging outputs, not th
 links. Publish the completed installers as a versioned release before deploying
 a download page that points to that version.
 
+For a release, select **Verify packages and upload a draft GitHub release** when
+starting the workflow. After both builds and installation checks pass, it checks
+the package hashes, architectures, versions, sandbox permissions, and bundled
+source/data files, then uploads DEB and ZIP files with `SHA256SUMS.txt` directly
+to a draft release. Release notes come from `desktop/releases/v<version>.md`.
+Review and publish the draft before deploying the updated download links.
+
 The footer shows the app version from `package.json`; the download page's
 **Current version** label and installer links describe the published desktop
 release. Advance the app version for web releases with, for example,

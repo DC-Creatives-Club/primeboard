@@ -2,6 +2,11 @@ name: Desktop builds
 
 on:
   workflow_dispatch:
+    inputs:
+      prepare_release:
+        description: Verify packages and upload a draft GitHub release
+        type: boolean
+        default: false
   push:
     branches: [master, codex/desktop-apps]
     paths: ['web/**', 'desktop/**', 'scripts/desktop-*', 'tests/**', 'package*.json', 'forge.config.mjs', '.gitattributes', '.github/workflows/desktop.yml']
@@ -57,3 +62,38 @@ jobs:
           path: out/make/
           if-no-files-found: error
           retention-days: 30
+
+  prepare-release:
+    name: Prepare draft Linux release
+    if: github.event_name == 'workflow_dispatch' && inputs.prepare_release
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      RELEASE_DIR: /tmp/primeboard-release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: Primeboard-linux-*
+          path: ${{ env.RELEASE_DIR }}/artifacts
+      - name: Verify and name release packages
+        run: |
+          python3 scripts/desktop-prepare-release.py "$RELEASE_DIR"
+          node scripts/desktop-verify-payloads.mjs "$RELEASE_DIR"
+      - name: Upload draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          gh release create "v$version" "$RELEASE_DIR"/release/* \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft \
+            --title "Primeboard $version — Linux desktop" \
+            --notes-file "desktop/releases/v$version.md"
