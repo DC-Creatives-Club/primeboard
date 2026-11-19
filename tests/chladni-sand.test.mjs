@@ -72,3 +72,18 @@ test('sand display preserves particles through freeze and clear, and restores th
   assert.deepEqual(display.sand.x, x);
   display.redistributeSand(); assert.notDeepEqual(display.sand.x, x);
 });
+
+test('a frozen plate previews newly selected modes without advancing its oscillator', () => {
+  const canvas = { width: 16, height: 16,
+    getContext: () => ({ createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }), putImageData: () => {} }),
+    setAttribute: () => {} };
+  const rows = parseCMF(readFileSync(new URL('../web/data/CIE_xyz_1931_2deg.csv', import.meta.url), 'utf8'));
+  const display = new ModeDisplay(canvas, rows), weights = Array(26).fill(0);
+  display.tick(0, false); weights[0] = 1; display.setState(weights, 'field', 1);
+  assert.equal(display.bank.energy, 0);
+  assert.equal(display.displayState.q[0], 1);
+  const pixels = display.image.data.slice();
+  weights[0] = 0; weights[1] = 1; display.setState(weights, 'field', 1);
+  assert.notDeepEqual(display.image.data, pixels);
+  assert.deepEqual([...display.displayState.q.slice(0, 2)], [0, 1]);
+});

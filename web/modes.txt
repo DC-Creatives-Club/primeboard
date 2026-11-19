@@ -10,7 +10,7 @@ Use the unit square with simply supported edges (zero displacement and bending
 moment), for an ideal thin, homogeneous, isotropic Kirchhoff–Love plate. The
 ordinary shapes are sin(m pi x) sin(n pi y); natural angular frequency is
 proportional to m²+n². Boundary conditions matter: this is not a free-edge plate
-held at its center, and we do not simulate granular dynamics.
+held at its center, while Sand particles adds a separate approximate grain-transport model.
 
 Our orthonormal basis is:
 
@@ -34,7 +34,8 @@ then adds those layers. This intentionally preserves the individual patterns.
 It is a diagram of which modes are present, not the nodal set of their summed
 displacement or a prediction of where sand will settle. Line thickness uses
 an approximate distance |phi| / max(2, |gradient phi|), with Gaussian width
-0.005 of the plate side. Each layer's weight is e_i.
+0.005 of the plate side. Each layer's brightness follows the normalized
+amplitude envelope A_i of its driven mode.
 
 Hues come from each key's CIE XYZ, normalized by its largest positive linear
 sRGB channel for visibility. Weighted XYZ layers add before the existing
@@ -43,6 +44,9 @@ related to the light view, but normalized layer brightness is illustrative.
 
 **Vibration strength** shows the squared fading mode mixture, including cross
 terms. **Mode mixture** shows the signed sum of the selected eigenmodes.
-Each press excites only its labeled mode. Amplitudes fade as exp(-5t) in real
-seconds, rather than displaying the rapid physical vibration. Holding builds the selected mode’s weight. Colored nodes also fades with the modal envelopes.
+Each key drives only its labeled mode. Holding maintains a steady resonant
+force: vibration builds toward equilibrium and rings down when released.
+The visual envelope comes from the same oscillator as audio, rather than
+displaying fast physical vibration. Frozen fields preview the selected modes
+at their steady amplitudes. Colored nodes also follows these envelopes.
 See ./resonator.txt for the simplified interaction and sound model.

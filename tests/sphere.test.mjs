@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { decodeModes } from '../web/modes.js';
 import { CubeView } from '../web/cube-view.js';
+import { loweredPitch } from '../web/pitch.js';
 
 function load(name) {
   const raw=readFileSync(new URL(`../web/data/modes/${name}.bin`,import.meta.url));
@@ -71,7 +72,7 @@ test('sphere shell passes rigid, equilibrium, convergence and analytical checks'
 test('switching sphere and cube models preserves key weights and selects correct pitches',()=>{
   const view=Object.create(CubeView.prototype);
   view.models={'sphere:scalar':scalar,'sphere:elastic':shell,'cube:scalar':load('rounded-cube'),'cube:elastic':load('rounded-shell')};
-  view.exponents=Array(26).fill(0);view.exponents[3]=2.5;view.interaction='strike';
+  view.exponents=Array(26).fill(0);view.exponents[3]=2.5;view.interaction='drive';
   for(const shape of ['sphere','cube','sphere'])for(const model of ['scalar','elastic']) {
     view.setModel(model,shape);
     assert.equal(view.shape,shape);assert.equal(view.model,model);
@@ -79,4 +80,17 @@ test('switching sphere and cube models preserves key weights and selects correct
     const fundamental=view.spec.fundamentalHz??110;
     view.spec.ratios.forEach((r,i)=>close(fundamental*r,model==='elastic'?view.data.metadata.frequenciesHz[i]:110*view.data.eigenvalues[i]/view.data.eigenvalues[0],1e-8));
   }
+});
+
+test('lowered sphere audio also sets the visual response clock without retuning its physical model', () => {
+  const view = Object.create(CubeView.prototype);
+  view.models = { 'sphere:elastic': shell }; view.exponents = Array(26).fill(0);
+  view.exponents[0] = 1; view.setModel('elastic', 'sphere');
+  const physical = view.spec.fundamentalHz;
+  view.setEnvelopeSpec(loweredPitch(view.spec, 3));
+  close(view.bank.resonator.omega[0] / (2 * Math.PI), physical / 8);
+  assert.equal(view.spec.fundamentalHz, physical);
+  assert.equal(view.bank.weights[0], 1);
+  view.bank.advance(.1);
+  assert.ok(view.bank.q[0] > 0 && view.bank.q[0] < 1);
 });

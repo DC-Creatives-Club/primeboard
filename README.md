@@ -144,7 +144,7 @@ and Cantor set operations remain unchanged. Positive velocity has fixed initial
 strength; pitch bend and other expression messages are ignored.
 
 Note-off and zero-velocity note-on release notes. CC64 provides channel-specific
-pedal sustain without continuing hold buildup; the on-screen Sustain button can
+pedal sustain that keeps modal drivers on (or retains Number exponents); the on-screen Sustain button can
 also retain notes after the pedal lifts. CC123 releases notes through sustain,
 and CC120 force-releases the channel. MIDI, QWERTY, and pointer sources cannot
 release one another’s notes. Switching or unplugging a device clears its held
@@ -238,8 +238,12 @@ refinement. The displayed field is each vector mode's **normal component**;
 its zeros need not be zeros of tangential motion.
 
 The cube stays fixed while the selected patterns grow and fade. These are modal
-envelopes, not literal vibration. Sound now uses the calculated natural pitches;
-damping and sound radiation are still illustrative. See the
+envelopes, not literal vibration. Held keys drive their modes continuously at
+the calculated natural pitches. Sound and visual strength use the same damped
+oscillator: buildup toward equilibrium, then ringdown on release. The key’s ×
+readout shows normalized response strength; a fresh held key settles near ×1.0.
+Sustain retains the driver, and replaying a sustained key adds driver weight.
+Damping and sound radiation are still illustrative. See the
 [full model and reproduction notes](web/data/modes/README.txt).
 
 To regenerate (Python 3.14):
@@ -325,8 +329,10 @@ remain illustrative, with no fluid loading or acoustic radiation calculation.
 
 ### Performance recording
 
-Record captures manual and MIDI key strengths and timing, including Sustain and continuous
-modal buildup. Stop recording saves the latest nonempty take in localStorage;
+Record captures manual and MIDI driver weights and timing, including Sustain.
+Playback and export recreate modal buildup and decay from those inputs; the
+response envelope is not baked into the saved weights. Existing recordings
+retain their saved strength curves as driver weights. Stop recording saves the latest nonempty take in localStorage;
 replacement and discard require confirmation. Takes are limited to ten minutes
 and finish when the page loses focus or becomes hidden. Storage failure leaves
 the take available to download in the current session.

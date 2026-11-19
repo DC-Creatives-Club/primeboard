@@ -78,16 +78,31 @@ export class Resonator {
   }
 }
 
-// The display shows modal envelopes, not fast instantaneous vibration.
-// This keeps each selected eigenmode recognizable and fades in real seconds.
+// Run the same driven oscillator as audio, but display its normalized amplitude
+// envelope instead of sampling its rapidly alternating displacement as a color.
 export class ModePulse {
   constructor(spec) { this.spec = spec; this.omega = spec.ratios.map(() => 1); this.reset(); }
-  reset() { this.q = new Float64Array(this.spec.ratios.length); this.v = new Float64Array(this.q.length); this.weights = Array(this.q.length).fill(0); }
-  setWeights(weights) {
-    weights.forEach((e, i) => { if (e > 0) this.q[i] = Math.sqrt(e); });
-    this.weights = [...weights];
+  reset() {
+    this.resonator = new Resonator(this.spec);
+    this.q = new Float64Array(this.spec.ratios.length);
+    this.v = new Float64Array(this.q.length);
   }
-  advance(dt) { const fade = Math.exp(-5 * dt); this.q.forEach((q, i) => { this.q[i] = this.weights[i] > 0 ? Math.sqrt(this.weights[i]) : q * fade < .002 ? 0 : q * fade; }); }
+  get weights() { return this.resonator.weights; }
+  setWeights(weights) {
+    this.resonator.setWeights(weights, 'drive');
+  }
+  advance(dt) {
+    const bank = this.resonator;
+    if (!bank.drive.some(Boolean) && bank.energy < 1e-14) return;
+    bank.advance(dt);
+    for (let i = 0; i < this.q.length; i++) {
+      const amplitude = this.spec.ratios[i] * Math.hypot(bank.q[i], bank.v[i] / bank.omega[i]);
+      this.q[i] = !this.weights[i] && amplitude < .002 ? 0 : amplitude;
+    }
+  }
   get energy() { return this.q.reduce((sum, q) => sum + q*q, 0); }
-  preview() { return this; }
+  preview() {
+    const q = Float64Array.from(this.weights, Math.sqrt);
+    return { q, v: this.v, omega: this.omega, energy: this.weights.reduce((sum, weight) => sum + weight, 0) };
+  }
 }

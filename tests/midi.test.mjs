@@ -95,12 +95,12 @@ test('MIDI channels and manual inputs own their releases independently', async (
 test('pedal sustain stops hold buildup, is channel-specific, and combines with manual sustain', async () => {
   const r = await rig(); r.calibrate();
   r.input.send(0xb0,64,127); r.input.send(0x90,48,100); r.input.send(0x91,49,100);
-  r.instrument.tick(500); r.instrument.tickContinuous(500);
+  r.instrument.tick(500);
   r.input.send(0x80,48,0); r.input.send(0x81,49,0);
   assert.equal(r.instrument.exponents[0],2); assert.equal(r.instrument.exponents[1],0);
   assert.equal(r.instrument.held.size,0);
-  r.instrument.tick(10000); r.instrument.tickContinuous(10000);
-  assert.equal(r.instrument.exponents[0],2); assert.equal(r.instrument.levels[0],2);
+  r.instrument.tick(10000);
+  assert.equal(r.instrument.exponents[0],2); assert.equal(r.instrument.levels[0],1);
   r.instrument.setSustain(true); r.instrument.setSustain(false);
   assert.equal(r.instrument.exponents[0],2, 'Turning off manual sustain preserves the pedal.');
   r.input.send(0xb0,64,0); assert.equal(r.instrument.exponents[0],0);

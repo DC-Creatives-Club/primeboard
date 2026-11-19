@@ -54,11 +54,13 @@ motion need not vanish there. They are not necessarily motionless material lines
 Each vector field is normalized to unit area-average squared displacement for
 legibility. Key strengths are artistic controls, not metres or measured energies.
 
-The cube's geometry remains fixed. The existing continuous hold and quick-release
-fade show modal envelopes, not the rapid time-dependent vibration itself.
+The cube's geometry remains fixed. The display shows normalized amplitude
+envelopes from the same driven oscillators used for audio, not their rapid
+time-dependent displacement. Holding switches on a steady resonant driver;
+release leaves a decaying vibration.
 Natural frequencies now set audio pitches directly; the former arbitrary
 110 Hz cube fundamental and Laplace-Beltrami frequency ratios are no longer used.
-Sound is a sum of short damped modal tones. Damping remains a chosen parameter;
+Sound is a sum of continuously driven modal tones with damped ringdown. Damping remains a chosen parameter;
 no microphone, contact-force spectrum, air-radiation or room model is solved.
 See ../../resonator.txt for interaction and sound details.
 

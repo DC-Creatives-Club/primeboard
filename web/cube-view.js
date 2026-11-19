@@ -51,7 +51,7 @@ export class CubeView {
   constructor(canvas, onError, renderSize = null) {
     this.canvas = canvas; this.onError = onError;
     this.exponents = Array(26).fill(0);
-    this.interaction = 'strike';
+    this.interaction = 'drive';
     this.yaw = -.58; this.pitch = .36; this.seconds = 0;
     this.paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.dirty = true; this.visible = true; this.enabled = true;
@@ -116,8 +116,7 @@ export class CubeView {
     this.data = this.models[`${shape}:${model}`];
     this.spec = resonanceSpec(model === 'elastic' ? this.data.metadata.frequenciesHz : this.data.eigenvalues);
     if (model === 'elastic') this.spec.fundamentalHz = this.data.metadata.frequenciesHz[0];
-    this.bank = new ModePulse(this.spec);
-    this.bank.setWeights(this.exponents, this.interaction);
+    this.setEnvelopeSpec(this.spec);
     this.field = new Float32Array(this.data.vertexCount * 2);
     if (this.gl) this.setup();
     this.dirty = true;
@@ -165,10 +164,17 @@ export class CubeView {
     }
   }
   reset() { this.bank?.reset(); this.dirty = true; }
+  setEnvelopeSpec(spec) {
+    this.envelopeSpec = spec;
+    this.bank = new ModePulse(spec);
+    this.bank.setWeights(this.exponents);
+    this.dirty = true;
+  }
   setInteraction(value) { this.interaction = value; this.reset(); }
   setEnabled(value) { this.enabled = value; this.dirty = true; }
   resetCamera() { this.yaw = -.58; this.pitch = .36; this.dirty = true; }
   setPaused(value) { this.paused = value; this.dirty = true; }
+  get displayState() { return this.paused || this.transportPaused ? this.bank?.preview() : this.bank; }
 
   createExportView(canvas) {
     if (!this.ready || this.lost) throw new Error('Wait for the 3D surface to finish loading before exporting.');
@@ -178,6 +184,7 @@ export class CubeView {
     if (!view.gl) throw new Error('Could not create the video’s 3D renderer.');
     try {
       view.setModel(this.model, this.shape);
+      view.setEnvelopeSpec(this.envelopeSpec || this.spec);
       view.yaw = this.yaw; view.pitch = this.pitch; view.paused = false; view.ready = true;
       return view;
     } catch (error) { view.dispose(); throw error; }
@@ -209,14 +216,14 @@ export class CubeView {
     if (!width || !height) return;
     if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
     gl.viewport(0, 0, width, height); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    const state = this.paused && this.bank.energy < 1e-12 ? this.bank.preview() : this.bank;
+    const state = this.displayState;
     mixDynamicSurface(this.data, state, this.field);
     gl.useProgram(this.program); gl.bindVertexArray(this.vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.fieldBuffer); gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.field);
     gl.uniform2f(this.uniforms.uAngles, this.yaw, this.pitch);
     gl.uniform1f(this.uniforms.uAspect, width / height);
     const power = state.energy;
-    gl.uniform1f(this.uniforms.uStrength, 1 - Math.exp(-8 * Math.sqrt(power)));
+    gl.uniform1f(this.uniforms.uStrength, 1 - Math.exp(-2 * Math.sqrt(power)));
     gl.drawElements(gl.TRIANGLES, this.data.indices.length, gl.UNSIGNED_INT, 0);
     this.dirty = false;
   }

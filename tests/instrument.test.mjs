@@ -47,19 +47,18 @@ test('changing hold speed restarts the interval without a jump in intensity', ()
   instrument.tick(500); assert.equal(instrument.exponents[0], 2);
 });
 
-test('modal holds grow continuously independent of prime steps and frame rate', () => {
-  const a = new Instrument(), b = new Instrument();
-  a.press(0,'q',0); b.press(0,'q',0);
-  a.tickContinuous(125); assert.equal(a.levels[0],1.25);
-  assert.equal(a.exponents[0],1);
-  a.tickContinuous(1000);
-  for(let t=10;t<=1000;t+=10) b.tickContinuous(t);
-  assert.ok(Math.abs(a.levels[0]-b.levels[0])<1e-10);
-  assert.equal(a.levels[0],3);
-  a.tickContinuous(100000); assert.equal(a.levels[0],32);
-  a.release('q'); assert.equal(a.levels[0],0);
-  b.setSustain(true); b.release('q'); assert.ok(b.levels[0]>0);
-  b.setSustain(false); assert.equal(b.levels[0],0);
+test('modal holds keep a steady driver independently of Number exponent growth', () => {
+  const instrument = new Instrument();
+  instrument.press(0, 'q', 0);
+  instrument.tick(100000);
+  assert.equal(instrument.exponents[0], 32);
+  assert.equal(instrument.levels[0], 1);
+  instrument.setSustain(true); instrument.release('q');
+  assert.equal(instrument.levels[0], 1);
+  instrument.press(0, 'q', 100001); instrument.release('q');
+  assert.equal(instrument.levels[0], 2, 'Replaying a sustained key explicitly increases its driver strength.');
+  instrument.setSustain(false);
+  assert.equal(instrument.levels[0], 0);
 });
 
 test('view adaptation preserves shared letters and pads or omits Cantor punctuation', () => {

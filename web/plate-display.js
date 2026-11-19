@@ -19,7 +19,7 @@ export class ModeDisplay {
     this.spec = plateResonanceSpec();
     this.bank = new ModePulse(this.spec);
     this.exponents = Array(26).fill(0);
-    this.interaction = 'strike';
+    this.interaction = 'drive';
     this.readout = 'nodes';
     this.exposure = 1;
     this.time = 0;
@@ -85,7 +85,7 @@ export class ModeDisplay {
     this.readout = readout;
     this.exposure = exposure;
     this.active = exponents.flatMap((e, i) => (e || this.bank.q[i] > .002) ? [{ e, amplitude: Math.sqrt(e), index: i, field: this.fields[i], nodes: this.nodes[i], color: this.colors[i] }] : []);
-    const description = readout === 'sand' ? 'Six thousand sand grains gradually gathering in quiet regions of a resonantly driven plate' : readout === 'nodes' ? 'Individual colored nodal patterns' : readout === 'strength' ? 'Instantaneous squared displacement, brighter where displacement is larger' : 'Signed displacement, blue positive and orange negative';
+    const description = readout === 'sand' ? 'Six thousand sand grains gradually gathering in quiet regions of a resonantly driven plate' : readout === 'nodes' ? 'Individual colored nodal patterns' : readout === 'strength' ? 'Squared mode-envelope mixture, brighter at larger amplitudes' : 'Signed mode-envelope mixture, blue positive and orange negative';
     this.canvas.setAttribute('aria-label', this.active.length ? `${description}. Active keys: ${this.active.map(a => `${KEYS[a.index].letter}, mode ${this.modeLabel(a.index)}, weight ${a.e}`).join('; ')}.` : readout === 'sand' ? 'Sand resting on a silent square plate. Hold a key or use Sustain to form a pattern.' : 'Silent square plate. Play a key to see its mode.');
     if (draw) this.draw();
   }
@@ -120,6 +120,7 @@ export class ModeDisplay {
 
   reset() { this.bank.reset(); if (this.fields) this.draw(); }
   setInteraction(value) { this.interaction = value; this.bank.reset(); }
+  get displayState() { return this.frozen ? this.bank.preview() : this.bank; }
 
   prepareSand() {
     this.sand ??= new ChladniSand();
@@ -183,7 +184,7 @@ export class ModeDisplay {
     if (this.readout === 'sand') { this.drawSand(); return; }
     if (this.canvas.width !== this.size) this.canvas.width = this.canvas.height = this.size;
     const data = this.image.data;
-    const wave = this.frozen && this.bank.energy < 1e-12 ? this.bank.preview().q : this.bank.q;
+    const wave = this.displayState.q;
     const colored = this.readout === 'nodes';
     const strength = this.readout === 'strength';
     for (let p = 0; p < this.size ** 2; p++) {
@@ -191,7 +192,7 @@ export class ModeDisplay {
       if (colored) {
         let x = 0, y = 0, z = 0;
         for (const a of this.active) {
-          const weight = this.bank.q[a.index] * a.nodes[p];
+          const weight = wave[a.index] * a.nodes[p];
           x += weight * a.color[0]; y += weight * a.color[1]; z += weight * a.color[2];
         }
         [r, g, b] = xyzToLinearRGB([x, y, z]);

@@ -55,7 +55,7 @@ const audioWeights = weights => visualization === 'cantor' ? cantorAudioWeights(
 let cantorView;
 let plateDisplay;
 let midi;
-const interaction = 'strike';
+const interaction = 'drive';
 let animatePlate = !matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function normalizedColor(xyz) {
@@ -109,7 +109,11 @@ function configureResonator() {
   const spec = tonalView() ? null : visualization === 'modes' ? plateDisplay?.spec : cubeView?.spec;
   const audioSpec = loweredPitch(spec || null, sphereElastic() ? spherePitchOctaves : 0);
   const sand = visualization === 'modes' && $('plate-readout').value === 'sand';
-  const changed = synth.setModel(audioSpec, sand ? 'drive' : interaction, visualization === 'cantor' ? CANTOR_FREQUENCIES : undefined);
+  const changed = synth.setModel(audioSpec, interaction, visualization === 'cantor' ? CANTOR_FREQUENCIES : undefined);
+  if (changed) {
+    if (surfaceView(visualization) && cubeView && audioSpec) cubeView.setEnvelopeSpec(audioSpec);
+    plateDisplay?.reset(); cubeView?.reset();
+  }
   $('sphere-pitch-control').hidden = !sphereElastic();
   $('hold-speed').closest('label').hidden = visualization !== 'light';
   $('exposure').closest('label').hidden = visualization === 'cantor' || sand;
@@ -231,7 +235,7 @@ function render() {
     if (!button) return;
     button.classList.toggle('active', value > 0);
     button.setAttribute('aria-pressed', String(value > 0));
-    button.querySelector('.key-exponent').textContent = value > 0 && visualization !== 'cantor' ? visualization !== 'light' ? `×${value.toFixed(1)}` : `^${value}` : '';
+    button.querySelector('.key-exponent').textContent = value > 0 && visualization === 'light' ? `^${value}` : '';
     spectrumLines[i]?.setAttribute('opacity', value ? 1 : 0);
     spectrumLines[i]?.setAttribute('y2', 112 - 96 * value / peak);
   });
@@ -239,12 +243,25 @@ function render() {
   if (visualization === 'modes') renderPlate(modal);
   if (visualization === 'cantor') cantorView.update(shown, cantorOperation);
   cubeView?.update(modal);
+  refreshModeStrengths();
   if (modesReady) {
     const index = active === 1 ? e.findIndex(Boolean) : -1;
     const summary = index >= 0 ? `${keyModeLabel(index)} · ${describePitch(keyFrequency(index))?.detail || 'loading pitch'}` : `${active} active modes`;
     $('cube').setAttribute('aria-label', `${visualization === 'sphere' ? 'Sphere' : 'Rounded cube'}, ${summary}`);
   }
   if (!inSong && !videoExport) synth.sync(audioWeights(shown));
+}
+
+function refreshModeStrengths() {
+  if (tonalView()) return;
+  const view = visualization === 'modes' ? plateDisplay : cubeView;
+  const bank = view?.bank;
+  if (!bank) return;
+  const response = view.displayState;
+  bank.weights.forEach((weight, i) => {
+    // A released key is immediately unpressed even while its vibration rings.
+    keyButtons[i].querySelector('.key-exponent').textContent = weight > 0 ? `×${(response.q[i] ** 2).toFixed(1)}` : '';
+  });
 }
 
 function selectView(view) {
@@ -284,9 +301,9 @@ function selectCantorOperation(operation) {
 }
 
 const readouts = {
-  nodes: { title: 'COLORED NODES', description: 'Each selected eigenmode fades in its own color. Multiple keys overlay their patterns.', legend: 'Each color traces one mode’s nodal lines.' },
+  nodes: { title: 'COLORED NODES', description: 'Each driven eigenmode builds and fades in its own color. Multiple keys overlay their patterns.', legend: 'Each color traces one mode’s nodal lines.' },
   strength: { title: 'VIBRATION STRENGTH', description: 'Squared amplitude of the fading mode mixture, including interference. This is not mechanical energy.', legend: 'Dark: near zero displacement · bright: large displacement' },
-  field: { title: 'MODE MIXTURE', description: 'The selected eigenmodes added together, fading quickly after each press.', legend: 'Blue: positive displacement · orange: negative · black: zero' },
+  field: { title: 'MODE MIXTURE', description: 'The driven eigenmode envelopes added together, ringing down after release.', legend: 'Blue: positive displacement · orange: negative · black: zero' },
   sand: { title: 'SAND PARTICLES', legend: '' },
 };
 function renderPlate(e) {
@@ -483,6 +500,7 @@ function scheduleSong() {
   player.play(startAt);
   const frames = songFrames(player.song, player.beat, !tonalView()).map(frame => ({ ...frame, exponents: audioWeights(viewWeights(frame.exponents)) }));
   synth.scheduleSequence(frames, startAt, player.beatsPerSecond);
+  plateDisplay?.reset(); cubeView?.reset();
   renderSongControls(); render();
 }
 async function playSong() {
@@ -695,6 +713,7 @@ function bindInputs() {
   const stop = () => {
     if(recorder.active)finishRecording();
     pointerKeyboard.reset(); midi?.reset(); instrument.clear();
+    plateDisplay?.reset(); cubeView?.reset();
     if (player.state !== 'playing') synth.stop();
     render();
   };
@@ -786,15 +805,11 @@ function bindInputs() {
   // Discrete real-time steps, independent of browser/OS key-repeat settings.
   setInterval(() => { if (visualization === 'light' && instrument.tick(performance.now())) render(); }, 25);
   let lastSongSpectrum = '';
-  let lastLevelRender = 0;
+  let lastStrengthRender = 0;
   const animateSong = timestamp => {
     if(recorder.active) {
       if(timestamp-recorder.started>=MAX_SECONDS*1000)finishRecording();
       else renderRecordingControls();
-    }
-    const levelsChanged = instrument.tickContinuous(timestamp);
-    if (levelsChanged && !tonalView() && timestamp - lastLevelRender >= 1000 / 30) {
-      lastLevelRender = timestamp; render();
     }
     if (player.state === 'playing') {
       player.update(synth.context.currentTime);
@@ -808,6 +823,9 @@ function bindInputs() {
     if (cubeView) {
       cubeView.transportPaused = player.state === 'paused';
       cubeView.tick(timestamp);
+    }
+    if (!tonalView() && timestamp - lastStrengthRender >= 1000 / 30) {
+      lastStrengthRender = timestamp; refreshModeStrengths();
     }
     requestAnimationFrame(animateSong);
   };

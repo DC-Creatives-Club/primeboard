@@ -29,8 +29,10 @@ export class Instrument {
     if (sustained?.size === 0) this.sustainedSources.delete(source);
     if (!this.held.has(index)) {
       this.exponents[index] = Math.min(MAX_EXPONENT, this.exponents[index] + 1);
+      // Modal levels are driver strengths. Holding keeps the force steady;
+      // the resonator, rather than the input, supplies the vibration buildup.
       this.levels[index] = Math.min(MAX_EXPONENT, this.levels[index] + 1);
-      this.held.set(index, { next: now + this.holdMs, last: now });
+      this.held.set(index, { next: now + this.holdMs });
     }
     return true;
   }
@@ -55,14 +57,6 @@ export class Instrument {
     return true;
   }
   isSustained(index) { return [...this.sustainedSources.values()].some(voices => voices.has(index)); }
-  tickContinuous(now) {
-    let changed = false;
-    for (const [i, hold] of this.held) {
-      const next = Math.min(MAX_EXPONENT, this.levels[i] + 2 * Math.max(0, now - hold.last) / 1000);
-      changed ||= next !== this.levels[i]; this.levels[i] = next; hold.last = now;
-    }
-    return changed;
-  }
   tick(now) {
     let changed = false;
     for (const [i, hold] of this.held) {

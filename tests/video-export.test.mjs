@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { VideoExport, selectVideoFormat, videoExtension } from '../web/video-export.js';
 import { exportTimeline, ExportClock, videoFrameTimes } from '../web/export-timeline.js';
 import { renderModalSamples } from '../web/export-audio-worker.js';
-import { Resonator, resonanceSpec } from '../web/resonator.js';
+import { Resonator, ModePulse, resonanceSpec } from '../web/resonator.js';
+import { Instrument } from '../web/instrument.js';
+import { PerformanceRecorder } from '../web/recording.js';
 import { ChladniSand } from '../web/chladni-sand.js';
 
 const weights = (index, value = 1, length = 32) => Array.from({ length }, (_, i) => i === index ? value : 0);
@@ -67,6 +69,23 @@ test('offline modal samples match the live resonator, including a retrigger and 
     }
     assert.ok(samples.some(v => Math.abs(v) > .01));
   }
+});
+
+test('recorded holds store steady driver weights and export recreates their buildup and decay once', () => {
+  const instrument = new Instrument(32), recorder = new PerformanceRecorder(32);
+  recorder.start(0); instrument.press(0, 'q', 0);
+  recorder.capture(0, instrument.exponents, instrument.levels);
+  recorder.capture(1000, instrument.exponents, instrument.levels);
+  instrument.release('q'); recorder.capture(1500, instrument.exponents, instrument.levels);
+  const recording = recorder.finish(2000);
+  assert.equal(recording.frames.length, 3);
+  assert.equal(recording.frames[0].levels[0], 1);
+  const pulse = new ModePulse(resonanceSpec(Array.from({ length: 26 }, (_, i) => i + 1)));
+  const clock = new ExportClock(exportTimeline(recording, 'modes').frames, pulse);
+  clock.advanceTo(.1); assert.ok(pulse.q[0] > .3 && pulse.q[0] < .5);
+  clock.advanceTo(1.5); assert.ok(pulse.q[0] > .99 && pulse.q[0] < 1.01);
+  clock.advanceTo(1.6); assert.ok(pulse.q[0] > 0 && pulse.q[0] < .7);
+  clock.advanceTo(3); assert.equal(pulse.energy, 0);
 });
 
 test('sand export clones random state and positions without sharing mutable data', () => {

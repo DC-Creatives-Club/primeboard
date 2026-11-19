@@ -1,39 +1,50 @@
-EIGENMODE PULSES
+DRIVEN EIGENMODES
 
-Each key excites only its labeled mode. A new press adds a modal impulse;
-holding increases that mode’s weight up to 32. Multiple keys superpose their
-selected modes. Clear resets sound and the displayed field immediately.
+Each held key continuously drives its labeled mode at its audible resonance.
+A fresh key has driver weight w = 1. Holding keeps that force constant: the
+oscillator supplies the buildup toward equilibrium, rather than increasing
+input strength with elapsed time. Sustain retains the driver. Replaying a
+sustained key adds one unit of weight, up to 32. Release removes the force;
+the existing motion rings down. Clear resets sound and display immediately.
 
-The visual field is a modal envelope: u(x,t) = sum A_i(t) phi_i(x).
-Each press adds sqrt(delta weight) to its amplitude; amplitudes decay as
-exp(-5 t), falling below 1% in one second and disappearing shortly afterward.
-This is a readable picture of the eigenmode mixture, not an instantaneous
-physical vibration or a slow-motion reconstruction of the sound.
-Colored nodes overlays the selected modes' nodal lines with fading brightness.
-Mode mixture shows their signed sum; Vibration strength shows its square.
+For frequency ratio r_i = f_i/f_1 and omega_i = 2 pi f_i, the solver is
 
-Audio uses damped independent oscillators at natural frequency ratios, with
-110 Hz as the plate fundamental, with plate ratios (m²+n²)/2. The cube
-uses the calculated elastic-shell frequencies in rounded-shell.json, where
-f_i = sqrt(lambda_i)/(2 pi); its fundamental is not retuned. Damping gamma_i = 4 + 1.5 sqrt(ratio_i) per second
-makes tones short. Displacement is sampled to give a smooth, zero-start attack.
-No additional surface modes or noise are excited by a single key.
+    q_i'' + 2 gamma_i q_i' + omega_i^2 q_i = F_i(t)
+    F_i(t) = 2 gamma_i omega_i sqrt(w_i)/r_i cos(omega_i t)
+    gamma_i = 4 + 1.5 sqrt(r_i) per second
 
-The cube modes now come from an MITC4 elastic-shell solve with specified
-dimensions and aluminum properties. Modal damping is still chosen, and the
-audio is not a calibrated sound-radiation model.
-Light retains its original musical tones and hold-to-build behavior.
+It advances the exact damped homogeneous solution plus the resonant particular
+solution over each time step. Changes to the driver preserve displacement and
+velocity. At equilibrium, displacement amplitude is sqrt(w_i)/r_i. Audio
+samples the sum of r_i q_i, followed by compression, limiting, and master gain.
+Damping and loudness balance are illustrative, not calibrated material data.
+The impulse solver remains available internally for tests; the app uses drive.
 
-While a key is held (or Sustain retains it), its visible amplitude is sqrt(e).
-The ×e key label and Hold step control show and adjust this weight buildup.
-Release with Sustain off starts the quick fade; Clear removes it immediately.
+The display solves the same oscillator at the same frequencies, including
+any selected audible sphere octave reduction, and extracts its envelope:
 
-Continuous modal controls
--------------------------
-Modal strengths are separate from integer prime exponents. Holding raises the
-strength continuously at 2 units per second, capped at 32; key labels show one
-decimal place. Visible amplitude is sqrt(strength), followed by a quick release
-fade. Light alone retains integer exponent steps. Fractional increases scale
-the existing audio mode rather than repeatedly injecting impulses.
-The rounded cube's mesh is fixed: only the surface pattern and its brightness
-change. No displacement is applied to its vertices.
+    A_i = r_i sqrt(q_i^2 + (q_i'/omega_i)^2)
+    displayed field = sum A_i phi_i
+
+The key’s × readout shows A_i^2 while its driver is selected. A fresh held key
+approaches ×1.0; its button unpresses immediately on release while the field
+and sound ring down. Number instead uses integer prime exponents. Cantor
+continues to sound fixed-strength tones for the simplified set.
+
+Colored nodes uses A_i to brighten each mode’s nodal pattern. Mode mixture
+shows the envelope-weighted signed sum; Vibration strength shows its square.
+The cube/sphere normalize contour fields for readability, with brightness
+following the envelope. Their meshes stay fixed. These are inspection views,
+not instantaneous displacement or slow-motion footage. Frozen fields preview
+selected steady amplitudes. Sand uses the same envelopes for its approximate
+agitation field; it freezes particle transport when requested.
+
+All physical views use this interaction. The simply supported plate and scalar
+surfaces retain their illustrative frequency mappings. Free plate and elastic
+shells retain their computed pitches. No extra modes, noise, contact forces,
+acoustic radiation, or room response are introduced.
+
+Recordings store driver weights rather than sampled response envelopes. The
+same oscillator supplies buildup and release during playback and offline
+export, so a recorded hold is not enveloped twice. Older takes retain their
+stored varying strengths as driver weights.

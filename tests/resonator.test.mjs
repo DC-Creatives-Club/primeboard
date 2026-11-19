@@ -43,14 +43,16 @@ test('integration is independent of frame size and slowdown is uniform', () => {
   close(a.q[0],slow.q[0]); close(a.v[0],slow.v[0]);
 });
 
-test('each press excites only its labeled mode; two presses superpose and fade quickly', () => {
+test('each input excites only its labeled mode; driven modes build and release independently', () => {
   const spec = resonanceSpec([2,5], [[0,2,1], [3,-1,2]]);
   assert.deepEqual(spec.strikes, [[1,0],[0,1]]);
   const bank = new Resonator(spec); bank.setWeights([1,0], 'strike');
   assert.equal(bank.v[1],0);
   const pulse = new ModePulse(spec); pulse.setWeights([1,0]);
-  assert.deepEqual([...pulse.q],[1,0]);
-  pulse.setWeights([1,1]); assert.deepEqual([...pulse.q],[1,1]);
+  assert.deepEqual([...pulse.q],[0,0]);
+  pulse.advance(2); close(pulse.q[0], 1, .0001); assert.equal(pulse.q[1], 0);
+  pulse.setWeights([1,1]); assert.equal(pulse.q[1], 0);
+  pulse.advance(2); close(pulse.q[0], 1, .0001); close(pulse.q[1], 1, .0001);
   pulse.setWeights([0,0]); pulse.advance(1);
   assert.ok(pulse.q.every(q=>q < .007));
   pulse.advance(.5); assert.equal(pulse.energy,0);
@@ -84,16 +86,44 @@ test('audio worklet schedules notes on its audio clock and cancels future notes 
   assert.ok(output.every(x=>x===0));assert.equal(processor.events.length,0);
 });
 
- test('holding raises the displayed mode weight; release fades without exciting other modes', () => {
-  const pulse = new ModePulse({ratios:[1,2]});
-  pulse.setWeights([1,0]); pulse.advance(2);
-  assert.deepEqual([...pulse.q],[1,0]);
-  pulse.setWeights([4,0]); pulse.advance(.5);
-  assert.deepEqual([...pulse.q],[2,0]);
-  pulse.setWeights([0,0]); pulse.advance(1);
-  assert.ok(pulse.q[0]<.014); assert.equal(pulse.q[1],0);
-  pulse.advance(.5); assert.equal(pulse.energy,0);
- });
+test('a steady held driver approaches equilibrium rather than growing forever', () => {
+  const pulse = new ModePulse(one), samples = [];
+  pulse.setWeights([4]);
+  for (let i = 0; i < 100; i++) { pulse.advance(.01); samples.push(pulse.q[0]); }
+  assert.ok(samples[0] > 0 && samples[0] < .2);
+  assert.ok(samples[9] > samples[0] && samples[9] < samples[49]);
+  close(samples[99], 2, .01);
+  pulse.advance(30); close(pulse.q[0], 2, 1e-8);
+  const before = pulse.q[0];
+  pulse.setWeights([0]); close(pulse.q[0], before);
+  pulse.advance(.1); assert.ok(pulse.q[0] < before && pulse.q[0] > 0);
+  pulse.advance(2); assert.equal(pulse.energy, 0);
+});
+
+test('display envelopes track the audio oscillator through buildup, retrigger, and ringdown', () => {
+  const spec = resonanceSpec([1, 2.5]), display = new ModePulse(spec), audio = new Resonator(spec);
+  const events = [[1,0], [1,4], [0,4], [2,4], [0,0]];
+  for (const weights of events) {
+    display.setWeights(weights); audio.setWeights(weights, 'drive');
+    for (let frame = 0; frame < 15; frame++) {
+      display.advance(1/30);
+      for (let sample = 0; sample < 1600; sample++) audio.advance(1/48000);
+      spec.ratios.forEach((ratio, i) => {
+        const amplitude = ratio * Math.hypot(audio.q[i], audio.v[i] / audio.omega[i]);
+        close(display.q[i], amplitude, .002);
+      });
+    }
+  }
+});
+
+test('frozen inspection previews the steady response without changing the live oscillator', () => {
+  const pulse = new ModePulse(one); pulse.setWeights([4]);
+  assert.equal(pulse.q[0], 0);
+  assert.equal(pulse.preview().q[0], 2);
+  assert.equal(pulse.energy, 0);
+  pulse.advance(.1); assert.ok(pulse.q[0] > 0 && pulse.q[0] < 2);
+  pulse.reset(); assert.equal(pulse.preview().energy, 0);
+});
 
 test('fractional strength increases scale the existing tone without new impulses', () => {
   const bank = new Resonator({ratios:[1],strikes:[[1]],pickup:[1]});
