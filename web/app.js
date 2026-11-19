@@ -8,6 +8,7 @@ import { FUNDAMENTAL_HZ } from './resonator.js';
 import { KEYS, MAX_EXPONENT, parseCMF, matchingAt, spectrumXYZ, primeProduct, displayColor, chromaticity } from './color.js';
 import { Instrument, fitKeyWeights } from './instrument.js';
 import { Synth } from './audio.js';
+import { shouldUnlockAudio } from './audio-gesture.js';
 import { SONGS, SongPlayer, songSpectrum, songFrames } from './song.js';
 import { MODES } from './plate-modes.js';
 import { ModeDisplay } from './plate-display.js';
@@ -37,6 +38,7 @@ let currentNumber = '1';
 let soundPending = false;
 const copyTimers = new WeakMap();
 let songPending = false;
+let songError = '';
 let playRequest = 0;
 let cubeView;
 let modesReady = false;
@@ -442,7 +444,7 @@ function renderSongControls() {
   $('song-progress').max = player.song.beats;
   $('song-progress').value = player.beat;
   $('song-time').textContent = `${time(player.beat)} / ${time(player.song.beats)}`;
-  $('song-status').textContent = player.state === 'playing' ? `Playing · ${player.positionLabel}` : player.state === 'paused' ? 'Paused · press Resume to continue' : player.state === 'ended' ? 'Finished · play it again or try the keys' : 'Play to hear the song and watch its spectrum';
+  $('song-status').textContent = songError || (songPending ? 'Starting audio…' : player.state === 'playing' ? `Playing · ${player.positionLabel}` : player.state === 'paused' ? 'Paused · press Resume to continue' : player.state === 'ended' ? 'Finished · play it again or try the keys' : 'Play to hear the song and watch its spectrum');
 }
 function renderSongSelection() {
   $('song-select').value = player.song.id;
@@ -460,6 +462,7 @@ function renderSongSelection() {
 function stopSong() {
   playRequest++;
   songPending = false;
+  songError = '';
   player.stop(); synth.stopSequence(); renderSongControls();
 }
 function takeOver() {
@@ -482,8 +485,10 @@ function scheduleSong() {
 }
 async function playSong() {
   if (player.state === 'playing') { pauseSong(); return; }
-  if (songPending || soundPending) return;
+  if (songPending) return;
   const request = ++playRequest;
+  songError = '';
+  if (player.song.id === 'recording') recordingNotice = '';
   songPending = true; renderSongControls();
   try {
     await synth.enable();
@@ -494,7 +499,11 @@ async function playSong() {
     $('app-message').textContent = '';
     scheduleSong();
   } catch (error) {
-    if (request === playRequest) $('app-message').textContent = `Song could not start: ${error.message}`;
+    if (request === playRequest) {
+      songError = `Song could not start: ${error.message}`;
+      if (player.song.id === 'recording') recordingNotice = songError;
+      $('app-message').textContent = songError;
+    }
   } finally {
     if (request === playRequest) { songPending = false; renderSongControls(); }
   }
@@ -619,21 +628,23 @@ function bindInputs() {
     savedRecording=null;try{localStorage.removeItem(RECORDING_KEY);}catch{}
     recordingNotice='';renderSongControls();
   });
+  let unlockRequest = 0;
   const unlockSound = async event => {
-    if (!event.isTrusted || !synth.enabled || soundPending || songPending
-        || synth.context?.state === 'running'
-        || event.target.closest?.('#sound, #song-play, #song-restart, #recording-play, #recording-export, #midi-connect')) return;
-    soundPending = true;
+    if (!shouldUnlockAudio(event) || !synth.enabled || soundPending || songPending
+        || (synth.context?.state === 'running' && synth.resonatorNode) || videoExport) return;
+    const request = ++unlockRequest;
     try {
       await synth.enable();
-      render();
+      if (request === unlockRequest) render();
     } catch (error) {
-      synth.disable(); refreshSoundControls();
-      $('app-message').textContent = `Sound could not start: ${error.message}`;
-    } finally { soundPending = false; }
+      if (request === unlockRequest && !songPending && (!synth.resonatorNode || synth.context?.state !== 'running')) {
+        $('app-message').textContent = `Sound could not start: ${error.message}`;
+      }
+    }
   };
-  window.addEventListener('pointerdown', unlockSound, true);
-  window.addEventListener('keydown', unlockSound, true);
+  for (const type of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) {
+    window.addEventListener(type, unlockSound, { capture: true, passive: true });
+  }
   const revealSection = hash => {
     const target = document.getElementById(hash.slice(1));
     if (!target) return;

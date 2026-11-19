@@ -2,6 +2,14 @@ import { KEYS, validateExponents } from './color.js';
 
 const DEFAULT_TONE_FREQUENCIES = Object.freeze(KEYS.map(key => key.audioHz));
 export const BASE_AMPLITUDE = 0.18;
+export const AUDIO_START_TIMEOUT_MS = 8000;
+function awaitAudioStart(operation, message) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), AUDIO_START_TIMEOUT_MS);
+    Promise.resolve(operation).then(value => { clearTimeout(timer); resolve(value); },
+      error => { clearTimeout(timer); reject(error); });
+  });
+}
 export function toneAmplitudes(exponents, keyCount = KEYS.length) {
   validateExponents(exponents, keyCount);
   // Mean power of A sin(wt) is A²/2, so amplitude grows as sqrt(e).
@@ -27,7 +35,7 @@ export function createOutputChain(context, volume) {
 }
 
 export class Synth {
-  constructor() { this.context = null; this.voices = new Map(); this.sequenceVoices = new Set(); this.enabled = false; this.volume = 0.25; this.frequencies = DEFAULT_TONE_FREQUENCIES; }
+  constructor() { this.context = null; this.voices = new Map(); this.sequenceVoices = new Set(); this.enabled = false; this.volume = 0.25; this.frequencies = DEFAULT_TONE_FREQUENCIES; this.enableGeneration = 0; }
   async enable() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) throw new Error('Audio is not supported in this browser.');
@@ -35,25 +43,37 @@ export class Synth {
       this.context = new AudioContext();
       Object.assign(this, createOutputChain(this.context, this.volume));
     }
-    const resumed = this.context.resume();
-    if (!this.resonatorNode) {
-      await this.context.audioWorklet.addModule(new URL('./resonator-worklet.js', import.meta.url));
-      this.resonatorNode = new AudioWorkletNode(this.context, 'primeboard-resonator', { outputChannelCount: [1] });
-      this.resonatorNode.connect(this.compressor);
-      if (this.model) {
-        this.resonatorNode.port.postMessage({ type: 'configure', spec: this.model, interaction: this.interaction });
-        // Preserve a short first tap made while the worklet module was loading.
-        if (this.pendingWeights?.length) {
-          const first = this.pendingWeights[0].time, now = this.context.currentTime;
-          this.resonatorNode.port.postMessage({ type: 'sequence', events: this.pendingWeights.map(event => ({ ...event, time: now + event.time - first })) });
-          this.pendingWeights = [];
-        }
-      }
-    }
-    await resumed;
-    this.enabled = true;
+    const generation = this.enableGeneration;
+    // Each user gesture gets a fresh synchronous resume call. Sharing this
+    // promise would strand a later Play tap behind an unauthorized touch/scroll.
+    const resumed = awaitAudioStart(this.context.resume(), 'Audio did not start. Tap Play again to retry.');
+    await Promise.all([resumed, this.prepareResonator()]);
+    if (this.context.state !== 'running') throw new Error('Audio is paused by the browser. Tap Play again to retry.');
+    if (generation === this.enableGeneration) this.enabled = true;
   }
-  disable() { this.enabled = false; this.stop(); }
+  async prepareResonator() {
+    if (this.resonatorNode) return Promise.resolve();
+    if (!this.resonatorLoading) {
+      this.resonatorLoading = awaitAudioStart(
+        this.context.audioWorklet.addModule(new URL('./resonator-worklet.js', import.meta.url)),
+        'The sound engine did not load. Tap Play again to retry.',
+      ).then(() => {
+        this.resonatorNode = new AudioWorkletNode(this.context, 'primeboard-resonator', { outputChannelCount: [1] });
+        this.resonatorNode.connect(this.compressor);
+        if (this.model) {
+          this.resonatorNode.port.postMessage({ type: 'configure', spec: this.model, interaction: this.interaction });
+          // Preserve a short first tap made while the worklet module was loading.
+          if (this.pendingWeights?.length) {
+            const first = this.pendingWeights[0].time, now = this.context.currentTime;
+            this.resonatorNode.port.postMessage({ type: 'sequence', events: this.pendingWeights.map(event => ({ ...event, time: now + event.time - first })) });
+            this.pendingWeights = [];
+          }
+        }
+      }).catch(error => { this.resonatorLoading = null; throw error; });
+    }
+    return this.resonatorLoading;
+  }
+  disable() { this.enableGeneration++; this.enabled = false; this.stop(); }
   setVolume(volume) {
     this.volume = Math.max(0, Math.min(0.5, Number.isFinite(volume) ? volume : 0));
     if (this.context) this.master.gain.setTargetAtTime(this.volume, this.context.currentTime, 0.02);
