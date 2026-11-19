@@ -65,8 +65,20 @@ directly. ES modules and the local CSV fetch require HTTP, rather than `file://`
   and video export work in both modes. Takes store key timings and replay/export
   through the currently selected operation. Examples live in **How to use**;
   **The math** explains normalization and the unchanged harmonic pitch mapping.
-- **Eigenmodes** preserves the 2D square-plate visualization: Colored nodes,
-  Vibration strength, and Mode mixture. Its original presets, freeze control,
+- **Flat plate** includes Colored nodes, Vibration strength, Mode mixture, and
+  **Sand particles**. Sand follows 6,000 persistent grains on either plate model;
+  hold a key or use Sustain to drive its natural frequency continuously. Grains
+  move more in strongly excited regions and gradually collect near nodes.
+  Equal-frequency modes interfere coherently; different frequencies contribute
+  separate averaged powers, so chords need not produce complete nodal lines.
+  This is a stochastic transport approximation, with an illustrative time scale
+  and reflecting rim, not a calibrated collision, friction, or airflow solver.
+  **Redistribute sand** scatters the grains; Clear stops excitation while
+  preserving their positions. Freeze, reduced motion, playback pause, hidden
+  views, and hidden tabs pause transport. Recordings retain key timings, not
+  grain positions or redistribution gestures; video export captures the current
+  particle evolution. **How to use** and **The math** explain the controls and
+  approximation. The original presets, freeze control,
   note labels, and optional Prime encoding are available in this view. See the
   [square-plate model](web/modes.txt) for its basis and driven dynamics.
 - **Rounded cube** displays a rounded thin metal surface, with one computed surface

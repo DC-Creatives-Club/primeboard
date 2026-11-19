@@ -2,6 +2,7 @@ import { decodeFreePlate, sampleFreePlate } from './free-plate.js';
 import { ModePulse } from './resonator.js';
 import { KEYS, matchingAt, xyzToLinearRGB, encodeSRGB } from './color.js';
 import { MODES, modeShape, nodeStrength, plateResonanceSpec } from './plate-modes.js';
+import { ChladniSand, sampleGrid } from './chladni-sand.js';
 
 // Raster work is bounded independently of the screen's device-pixel ratio.
 // Spatial shapes are cached; static views redraw only on a state change.
@@ -12,6 +13,7 @@ export class ModeDisplay {
     this.size = canvas.width;
     this.image = this.context.createImageData(this.size, this.size);
     this.fields = null;
+    this.sand = null;
     this.active = [];
     this.model = 'supported';
     this.spec = plateResonanceSpec();
@@ -47,6 +49,7 @@ export class ModeDisplay {
     this.spec = model === 'free' ? this.freePlate.spec : plateResonanceSpec();
     this.bank = new ModePulse(this.spec);
     this.fields = null;
+    this.sandFields = null;
     this.setState(this.exponents, this.readout, this.exposure);
   }
 
@@ -82,7 +85,8 @@ export class ModeDisplay {
     this.readout = readout;
     this.exposure = exposure;
     this.active = exponents.flatMap((e, i) => (e || this.bank.q[i] > .002) ? [{ e, amplitude: Math.sqrt(e), index: i, field: this.fields[i], nodes: this.nodes[i], color: this.colors[i] }] : []);
-    this.canvas.setAttribute('aria-label', this.active.length ? `${readout === 'nodes' ? 'Individual colored nodal patterns' : readout === 'strength' ? 'Instantaneous squared displacement, brighter where displacement is larger' : 'Signed displacement, blue positive and orange negative'}. Active keys: ${this.active.map(a => `${KEYS[a.index].letter}, mode ${this.modeLabel(a.index)}, weight ${a.e}`).join('; ')}.` : 'Silent square plate. Play a key to see its mode.');
+    const description = readout === 'sand' ? 'Six thousand sand grains gradually gathering in quiet regions of a resonantly driven plate' : readout === 'nodes' ? 'Individual colored nodal patterns' : readout === 'strength' ? 'Instantaneous squared displacement, brighter where displacement is larger' : 'Signed displacement, blue positive and orange negative';
+    this.canvas.setAttribute('aria-label', this.active.length ? `${description}. Active keys: ${this.active.map(a => `${KEYS[a.index].letter}, mode ${this.modeLabel(a.index)}, weight ${a.e}`).join('; ')}.` : readout === 'sand' ? 'Sand resting on a silent square plate. Hold a key or use Sustain to form a pattern.' : 'Silent square plate. Play a key to see its mode.');
     this.draw();
   }
 
@@ -92,6 +96,11 @@ export class ModeDisplay {
     this.frozen = !moving;
     if (!moving || !this.fields) return;
     this.bank.advance(dt);
+    if (this.readout === 'sand') {
+      this.prepareSand();
+      this.sand.setAmplitudes(this.bank.q);
+      this.sand.advance(dt);
+    }
     this.time += dt;
     if (now - this.lastDraw < 1000 / 60) return;
     this.lastDraw = now;
@@ -101,7 +110,67 @@ export class ModeDisplay {
   reset() { this.bank.reset(); if (this.fields) this.draw(); }
   setInteraction(value) { this.interaction = value; this.bank.reset(); }
 
+  prepareSand() {
+    this.sand ??= new ChladniSand();
+    if (this.sandFields) return;
+    // A smaller transport grid bounds the work independently of display resolution.
+    const size = 129;
+    this.sandFields = this.fields.map(field => Float32Array.from({ length: size * size }, (_, p) =>
+      sampleGrid(field, this.size, (p % size) / (size - 1), Math.floor(p / size) / (size - 1))));
+    this.sand.setModes(this.sandFields, this.spec.ratios, size);
+  }
+
+  redistributeSand() {
+    this.prepare(); this.prepareSand();
+    this.sand.redistribute();
+    this.draw();
+  }
+
+  drawSand() {
+    this.prepareSand();
+    this.sand.setAmplitudes(this.bank.q);
+    const size = 512, inset = 13, span = size - 2 * inset - 1;
+    if (this.canvas.width !== size) this.canvas.width = this.canvas.height = size;
+    if (!this.sandImage) {
+      this.sandImage = this.context.createImageData(size, size);
+      this.sandBackground = new Uint8ClampedArray(size * size * 4);
+      for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+        const p = 4 * (y * size + x), edge = Math.min(x, y, size - 1 - x, size - 1 - y);
+        const grain = ((x * 37 + y * 131) % 17) / 17;
+        const light = edge < 5 ? 12 : edge < 10 ? 50 + (x + y < size ? 14 : -14)
+          : 28 + 10 * (1 - y / size) + 3 * grain;
+        this.sandBackground[p] = light;
+        this.sandBackground[p + 1] = light + 2;
+        this.sandBackground[p + 2] = light + 4;
+        this.sandBackground[p + 3] = 255;
+      }
+    }
+    const pixels = this.sandImage.data;
+    pixels.set(this.sandBackground);
+    const paint = (x, y, r, g, b, opacity, radius) => {
+      const ix = Math.floor(x), iy = Math.floor(y);
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const alpha = opacity * Math.max(0, radius - Math.abs(ix + dx - x))
+          * Math.max(0, radius - Math.abs(iy + dy - y));
+        if (!alpha) continue;
+        const p = 4 * ((iy + dy) * size + ix + dx), a = Math.min(1, alpha);
+        pixels[p] += a * (r - pixels[p]);
+        pixels[p + 1] += a * (g - pixels[p + 1]);
+        pixels[p + 2] += a * (b - pixels[p + 2]);
+      }
+    };
+    for (let i = 0; i < this.sand.count; i++) {
+      const x = inset + span * this.sand.x[i], y = inset + span * this.sand.y[i];
+      const v = this.sand.variation[i], radius = .85 + .35 * v;
+      paint(x + .7, y + .9, 8, 9, 10, .65, radius);
+      paint(x, y, 205 + 40 * v, 183 + 45 * v, 133 + 60 * v, 1, radius);
+    }
+    this.context.putImageData(this.sandImage, 0, 0);
+  }
+
   draw() {
+    if (this.readout === 'sand') { this.drawSand(); return; }
+    if (this.canvas.width !== this.size) this.canvas.width = this.canvas.height = this.size;
     const data = this.image.data;
     const wave = this.frozen && this.bank.energy < 1e-12 ? this.bank.preview().q : this.bank.q;
     const colored = this.readout === 'nodes';

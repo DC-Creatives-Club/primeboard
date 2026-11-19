@@ -103,10 +103,11 @@ function refreshPitchDetail() {
 function configureResonator() {
   const spec = tonalView() ? null : visualization === 'modes' ? plateDisplay?.spec : cubeView?.spec;
   const audioSpec = loweredPitch(spec || null, sphereElastic() ? spherePitchOctaves : 0);
-  const changed = synth.setModel(audioSpec, interaction, visualization === 'cantor' ? CANTOR_FREQUENCIES : undefined);
+  const sand = visualization === 'modes' && $('plate-readout').value === 'sand';
+  const changed = synth.setModel(audioSpec, sand ? 'drive' : interaction, visualization === 'cantor' ? CANTOR_FREQUENCIES : undefined);
   $('sphere-pitch-control').hidden = !sphereElastic();
   $('hold-speed').closest('label').hidden = visualization !== 'light';
-  $('exposure').closest('label').hidden = visualization === 'cantor';
+  $('exposure').closest('label').hidden = visualization === 'cantor' || sand;
   if (changed && player.state === 'playing') {
     player.update(synth.context.currentTime);
     if (player.state === 'playing') scheduleSong();
@@ -280,13 +281,19 @@ const readouts = {
   nodes: { title: 'COLORED NODES', description: 'Each selected eigenmode fades in its own color. Multiple keys overlay their patterns.', legend: 'Each color traces one mode’s nodal lines.' },
   strength: { title: 'VIBRATION STRENGTH', description: 'Squared amplitude of the fading mode mixture, including interference. This is not mechanical energy.', legend: 'Dark: near zero displacement · bright: large displacement' },
   field: { title: 'MODE MIXTURE', description: 'The selected eigenmodes added together, fading quickly after each press.', legend: 'Blue: positive displacement · orange: negative · black: zero' },
+  sand: { title: 'SAND PARTICLES', legend: '' },
 };
 function renderPlate(e) {
   const readout = $('plate-readout').value;
   const info = readouts[readout];
+  const sand = readout === 'sand';
   $('plate-screen-title').textContent = info.title;
+  $('plate-screen').classList.toggle('sand-active', sand);
   $('plate-legend').textContent = info.legend;
+  $('plate-legend').hidden = sand;
   $('plate-motion-controls').hidden = readout === 'nodes';
+  $('plate-motion-note').hidden = sand;
+  $('plate-sand-reset').hidden = !sand;
   $('plate-motion').textContent = animatePlate ? 'Freeze motion' : 'Animate';
   $('plate-motion').setAttribute('aria-pressed', String(!animatePlate));
   const active = e.flatMap((weight, i) => weight ? [{ i, weight }] : []);
@@ -719,7 +726,8 @@ function bindInputs() {
   window.addEventListener('blur', stop);
   document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
   window.addEventListener('pagehide', stop);
-  $('plate-readout').addEventListener('change', () => { render(); $('keyboard').focus({ preventScroll: true }); });
+  $('plate-readout').addEventListener('change', () => { configureResonator(); render(); $('keyboard').focus({ preventScroll: true }); });
+  $('plate-sand-reset').addEventListener('click', () => { plateDisplay.redistributeSand(); $('keyboard').focus({ preventScroll: true }); });
   $('plate-motion').addEventListener('click', () => { animatePlate = !animatePlate; render(); });
   matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', event => { if (event.matches) { animatePlate = false; render(); } });
   const modalPresets = { single: [[8,2]], pair: [[4,2],[8,2]], chord: [[4,2],[8,2],[13,2]] };

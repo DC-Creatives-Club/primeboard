@@ -116,6 +116,7 @@ main{padding-top:20px}
 .settings-adjustments .controls{flex:auto;width:100%}
 
 .plate-settings-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px}.plate-settings-actions[hidden]{display:none}#free-plate-math{scroll-margin-top:20px}
+#plate-sand-reset{font:11px var(--mono);border:1px solid #46474c;background:#222327;border-radius:5px;padding:8px 12px}#plate-sand-reset[hidden],#plate-motion-note[hidden],.plate-legend[hidden]{display:none}.sand-active .plate-wrap{padding-bottom:22px}.sand-active .plate-wrap canvas{width:min(100%,420px);max-width:420px;border:0}#sand-math{scroll-margin-top:20px}
 
 /* A small gap separates the display from the playable keys. */
 .keyboard{padding-top:16px}
