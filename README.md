@@ -3,6 +3,9 @@
 A playable keyboard of prime numbers, spectral light, and sine tones.
 Public app: **https://primeboard.jacksonwalters.com**.
 
+Primeboard remains the current name while we explore a more distinctive future
+name. See the [naming shortlist and trademark notes](docs/naming-shortlist.md).
+
 The browser app is static HTML, CSS, and JavaScript, with no runtime packages,
 accounts, telemetry, external assets, or backend. The CIE table is bundled locally.
 The former `synesthesiaer` Python CLI is retired and its legacy files removed.
