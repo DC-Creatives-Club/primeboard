@@ -35,10 +35,14 @@ an Apple Developer ID and notarization, and Windows code signing. Releases do no
 auto-update yet; installing a newer version retains the app's local data.
 
 Release downloads are permanent GitHub Release assets, with a `SHA256SUMS.txt`
-file for integrity checks. The **Desktop builds** workflow builds and tests each
-platform on its native OS. Its temporary CI artifacts are staging outputs, not
-the public download links. Publish the completed installers as a versioned
-release before deploying a download page that points to that version.
+file for integrity checks. On relevant pushes and pull requests, the **Desktop
+builds** workflow runs the full test suite and builds only Linux ARM64 for the
+Raspberry Pi. To build all five desktop targets on their native operating
+systems, open **Actions → Desktop builds → Run workflow**. Manual builds run
+independently of automatic Pi checks, so a new push does not cancel a manual
+build. Its temporary CI artifacts are staging outputs, not the public download
+links. Publish the completed installers as a versioned release before deploying
+a download page that points to that version.
 
 The footer shows the app version from `package.json`; the download page's
 **Current version** label and installer links describe the published desktop
@@ -84,8 +88,8 @@ npm run desktop:checksums
 
 The default target is the host's OS and architecture. Use `-- --arch=x64` or
 `-- --arch=arm64` for packaging another supported architecture. Build native
-installers on their matching OS; the GitHub workflow supplies all five build
-machines. Linux makers need `fakeroot`, `dpkg`, and `rpm`. Mac DMGs use Apple's
+installers on their matching OS; a manual GitHub workflow run supplies all five
+build machines. Linux makers need `fakeroot`, `dpkg`, and `rpm`. Mac DMGs use Apple's
 built-in `hdiutil`. Outputs are under `out/make/`; unpacked applications are
 under `out/Primeboard-<platform>-<arch>/`. Development uses a separate
 `Primeboard Development` profile, so testing leaves installed-app data alone.

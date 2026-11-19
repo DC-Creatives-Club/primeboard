@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: desktop-${{ github.ref }}
+  group: desktop-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && 'manual' || 'automatic' }}
   cancel-in-progress: true
 
 jobs:
@@ -21,12 +21,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - {name: Linux x64, os: ubuntu-22.04, arch: x64, platform: linux}
-          - {name: Linux ARM64 (Pi 5), os: ubuntu-22.04-arm, arch: arm64, platform: linux}
-          - {name: macOS Apple silicon, os: macos-15, arch: arm64, platform: darwin}
-          - {name: macOS Intel, os: macos-15-intel, arch: x64, platform: darwin}
-          - {name: Windows x64, os: windows-2025, arch: x64, platform: win32}
+        # Pushes and pull requests check the Pi; manual runs prepare every platform.
+        include: >-
+          ${{ fromJSON(github.event_name == 'workflow_dispatch' && '[
+            {"name":"Linux x64","os":"ubuntu-22.04","arch":"x64","platform":"linux"},
+            {"name":"Linux ARM64 (Pi 5)","os":"ubuntu-22.04-arm","arch":"arm64","platform":"linux"},
+            {"name":"macOS Apple silicon","os":"macos-15","arch":"arm64","platform":"darwin"},
+            {"name":"macOS Intel","os":"macos-15-intel","arch":"x64","platform":"darwin"},
+            {"name":"Windows x64","os":"windows-2025","arch":"x64","platform":"win32"}
+          ]' || '[
+            {"name":"Linux ARM64 (Pi 5)","os":"ubuntu-22.04-arm","arch":"arm64","platform":"linux"}
+          ]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     steps:
