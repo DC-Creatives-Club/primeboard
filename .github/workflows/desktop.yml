@@ -43,6 +43,13 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run desktop:make -- --arch=${{ matrix.arch }}
+      - name: Verify Debian and Ubuntu installation
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          packages=(out/make/deb/*/*.deb)
+          test "${#packages[@]}" -eq 1
+          bash scripts/desktop-test-install.sh "${packages[0]}"
       - run: npm run desktop:checksums
       - uses: actions/upload-artifact@v4
         with:

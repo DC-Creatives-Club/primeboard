@@ -33,7 +33,10 @@ builds** workflow runs the full test suite and builds only Linux ARM64 for the
 Raspberry Pi. To build both Linux architectures on native Linux runners,
 open **Actions → Desktop builds → Run workflow**. Manual builds run
 independently of automatic Pi checks, so a new push does not cancel a manual
-build. Its temporary CI artifacts are staging outputs, not the public download
+build. Manual runs also install and remove each DEB in clean Debian 12/13 and
+Ubuntu 22.04/24.04 containers, checking runtime libraries, the desktop launcher,
+and sandbox permissions. These checks do not replace graphical, audio, and MIDI
+testing on physical hardware. Temporary CI artifacts are staging outputs, not the public download
 links. Publish the completed installers as a versioned release before deploying
 a download page that points to that version.
 
