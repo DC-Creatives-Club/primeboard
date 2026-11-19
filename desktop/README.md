@@ -8,7 +8,7 @@ the system browser.
 ## Downloads and installation
 
 Download an installer from the [Primeboard download page](https://primeboard.jacksonwalters.com/download.html)
-or the [public release](https://github.com/jacksonwalters/primeboard/releases/tag/v1.0.0).
+or the [public release](https://github.com/jacksonwalters/primeboard/releases/tag/v1.3.0).
 No GitHub account is needed. Choose the package for your computer:
 
 | Computer | Download | Installation |
@@ -24,10 +24,10 @@ ZIP bundles are also produced for every target. Extract the entire archive;
 run `Primeboard.app` on Mac, `Primeboard.exe` on Windows, or `Primeboard` on Linux.
 Keep the accompanying runtime files with the executable. Linux packages are the
 preferred installation route because the package manager resolves dependencies.
-For a downloaded Debian package, `sudo apt install ./Primeboard-1.0.0-Linux-arm64.deb`
+For a downloaded Debian package, `sudo apt install ./Primeboard-1.3.0-Linux-arm64.deb`
 installs the Pi build (use the actual downloaded filename).
 
-These initial builds are unsigned and not notarized. macOS Gatekeeper and Windows
+These builds are unsigned and not notarized. macOS Gatekeeper and Windows
 SmartScreen may require the user to approve the first launch. The Mac bundles
 have Electron's required ad-hoc signature; this is not a verified publisher
 signature. Do not disable OS security globally. Public distribution should add
