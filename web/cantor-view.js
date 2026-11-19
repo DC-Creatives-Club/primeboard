@@ -5,10 +5,12 @@ const projection = cantorLevel(6);
 const ink = '#b8c8c9', muted = '#7e9298', resultColor = '#ede4ab';
 
 export class CantorView {
-  constructor(canvas) {
+  constructor(canvas, renderWidth = null) {
     this.canvas = canvas;
+    this.renderWidth = renderWidth;
     this.state = cantorSelection(Array(CANTOR_STATE_SIZE).fill(0));
     this.signature = '';
+    if (renderWidth) return;
     this.observer = new ResizeObserver(() => this.draw());
     this.observer.observe(canvas);
   }
@@ -25,9 +27,9 @@ export class CantorView {
   }
 
   draw() {
-    const w = this.canvas.clientWidth;
+    const w = this.renderWidth ?? this.canvas.clientWidth;
     if (!w) return;
-    const h = 306, dpr = Math.min(devicePixelRatio || 1, 3);
+    const h = 306, dpr = this.renderWidth ? 1 : Math.min(devicePixelRatio || 1, 3);
     this.canvas.width = Math.round(w * dpr); this.canvas.height = Math.round(h * dpr);
     const ctx = this.canvas.getContext('2d');
     ctx.scale(dpr, dpr);

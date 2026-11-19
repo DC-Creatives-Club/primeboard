@@ -1,4 +1,6 @@
 import { VideoExport, videoExtension } from './video-export.js';
+import { exportTimeline } from './export-timeline.js';
+import { ExportRenderer } from './export-renderer.js';
 import { PerformanceRecorder, RECORDING_KEY, MAX_SECONDS, validateRecording, recordingSong } from './recording.js';
 import { loweredPitch, describePitch, matchesScale, NOTE_NAMES, SCALES } from './pitch.js';
 import { updateSongButton } from './song-controls.js';
@@ -23,7 +25,7 @@ const player = new SongPlayer(SONGS[0]);
 const recorder = new PerformanceRecorder(CANTOR_STATE_SIZE);
 let savedRecording = null;
 let recordingNotice = '';
-let videoExport = null, exportPending = false, exportCanvas, exportUntil = 0;
+let videoExport = null;
 let exportURL = null;
 try { const raw=localStorage.getItem(RECORDING_KEY); if(raw) savedRecording=validateRecording(JSON.parse(raw)); }
 catch { recordingNotice='Saved recording could not be read. You can make a new take.'; }
@@ -238,7 +240,7 @@ function render() {
     const summary = index >= 0 ? `${keyModeLabel(index)} · ${describePitch(keyFrequency(index))?.detail || 'loading pitch'}` : `${active} active modes`;
     $('cube').setAttribute('aria-label', `${visualization === 'sphere' ? 'Sphere' : 'Rounded cube'}, ${summary}`);
   }
-  if (!inSong) synth.sync(audioWeights(shown));
+  if (!inSong && !videoExport) synth.sync(audioWeights(shown));
 }
 
 function selectView(view) {
@@ -393,7 +395,7 @@ function bindMidi() {
   midi = new MidiController({
     requestAccess: navigator.requestMIDIAccess?.bind(navigator), storage,
     onPress: press, onRelease: release, onChange: renderMidiControls,
-    canPlay: () => !document.hidden && document.hasFocus() && !videoExport && !exportPending && takeOver(),
+    canPlay: () => !document.hidden && document.hasFocus() && !videoExport && takeOver(),
   });
   $('midi-connect').addEventListener('click', async () => {
     if (midi.enabled || midi.connecting) { midi.disconnect(); return; }
@@ -520,8 +522,9 @@ function renderRecordingControls() {
   $('recording-status').textContent=recordingNotice || (recordingPlayback&&['playing','paused'].includes(player.state)?`${player.state==='playing'?'Playing':'Paused'} · ${recordingTime(player.beat)}`:'Saved in this browser. Export video to share.');
   $('song-select').disabled=recorder.active;
   $('song-restart').disabled=recorder.active;
-  const exporting=Boolean(videoExport)||exportPending;
-  if(videoExport)$('recording-status').textContent=`Exporting video · ${recordingTime(player.beat)} / ${recordingTime(savedRecording.duration)} — keep this tab visible.`;
+  const exporting=Boolean(videoExport);
+  $('export-progress').hidden=!exporting;
+  $('record').disabled=exporting;
   $('recording-export').disabled=Boolean(recorder.active)||exporting;
   $('export-cancel').hidden=!exporting;
   for(const id of ['recording-play','recording-stop','recording-discard','recording-download'])if(exporting)$(id).disabled=true;
@@ -549,66 +552,48 @@ function clearExportDownload() {
   if(exportURL)URL.revokeObjectURL(exportURL);
   exportURL=null;$('export-result').hidden=true;$('export-result').removeAttribute('href');
 }
-function exportFrame() {
-  if(!exportCanvas)return;
-  const ctx=exportCanvas.getContext('2d'),w=exportCanvas.width,h=exportCanvas.height;
-  ctx.fillStyle='#101316';ctx.fillRect(0,0,w,h);
-  if(visualization==='light') {
-    const color=$('color-hex').textContent;
-    const gradient=ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,h*.55);
-    gradient.addColorStop(0,color);gradient.addColorStop(1,'#101316');
-    ctx.fillStyle=gradient;ctx.fillRect(0,0,w,h);
-    ctx.fillStyle='white';ctx.textAlign='center';ctx.font='32px monospace';
-    ctx.fillText(currentNumber,w/2,h/2,w-80);
-  } else {
-    const source=visualization==='cantor'?$('cantor-canvas'):visualization==='modes'?$('plate-canvas'):$('cube');
-    if(surfaceView(visualization))cubeView.draw();
-    const scale=Math.min((w-48)/source.width,(h-80)/source.height);
-    const sw=source.width*scale,sh=source.height*scale;
-    ctx.drawImage(source,(w-sw)/2,(h-sh)/2,sw,sh);
-  }
-  ctx.textAlign='left';ctx.fillStyle='#d6d3b8';ctx.font='16px sans-serif';
-  ctx.fillText('primeboard.',24,h-22);
-}
 function finishVideoExport() {
-  videoExport=null;exportPending=false;
-  if(cubeView)cubeView.exporting=false;
+  videoExport=null;
   document.querySelector('.instrument-settings').inert=false;
   document.querySelector('.below-instrument').inert=false;
   $('keyboard').inert=false;
-  stopSong();clear();renderRecordingControls();
+  renderRecordingControls();
 }
 function cancelVideoExport() {
-  if(!videoExport&&!exportPending)return;
-  videoExport?.stop(true);
-  recordingNotice='Export cancelled. Your recording is still saved.';
-  finishVideoExport();
+  if(!videoExport)return;
+  videoExport.cancel();
+  recordingNotice='Cancelling export…';renderRecordingControls();
 }
 async function exportRecordingVideo() {
-  if(!savedRecording||recorder.active||videoExport||exportPending)return;
+  if(!savedRecording||recorder.active||videoExport)return;
   clearExportDownload();
-  exportPending=true;recordingNotice='Preparing video…';renderRecordingControls();
+  const job = new VideoExport(); videoExport=job;
+  $('export-progress').value=0;
+  recordingNotice='Preparing video…';renderRecordingControls();
   document.querySelector('.instrument-settings').inert=true;
   document.querySelector('.below-instrument').inert=true;$('keyboard').inert=true;
   try {
-    await synth.enable();
-    if(!exportPending)return;
-    stopSong();midi?.reset();instrument.clear();plateDisplay?.reset();cubeView?.reset();
-    player.selectSong(recordingSong(savedRecording));player.rate=1;
-    exportCanvas=document.createElement('canvas');exportCanvas.width=960;exportCanvas.height=720;
-    if(cubeView)cubeView.exporting=true;
-    render();exportFrame();
-    videoExport=new VideoExport(exportCanvas,synth.master,blob=>{
-      if(exportURL)URL.revokeObjectURL(exportURL);
-      exportURL=URL.createObjectURL(blob);
-      const link=$('export-result');link.href=exportURL;link.download=`primeboard-recording.${videoExtension(blob.type)}`;link.hidden=false;
-      link.textContent=`Download video (${videoExtension(blob.type).toUpperCase()})`;
-      recordingNotice='Video ready.';finishVideoExport();
-    },error=>{recordingNotice=error.message;finishVideoExport();});
-    exportPending=false;
-    scheduleSong();exportUntil=player.anchor+savedRecording.duration+.6;
-    recordingNotice='Exporting video — keep this tab visible.';renderRecordingControls();
-  } catch(error) {recordingNotice=`Could not export video: ${error.message}`;finishVideoExport();}
+    // Pause existing sound, but do not select or play the recording to export it.
+    pauseSong(); synth.stop();
+    const timeline=exportTimeline(savedRecording,visualization,cantorOperation);
+    const blob=await job.run({
+      timeline,
+      audioSettings: { spec:synth.model, interaction:synth.interaction, frequencies:[...synth.frequencies], volume:synth.volume },
+      createRenderer: () => new ExportRenderer({view:visualization,rows,exposure,operation:cantorOperation,cubeView,plateDisplay}),
+      onProgress: (stage, progress) => {
+        if(job.controller.signal.aborted)return;
+        recordingNotice=`${stage} · ${Math.round(progress*100)}%`;
+        $('export-progress').value=progress;renderRecordingControls();
+      },
+    });
+    exportURL=URL.createObjectURL(blob);
+    const link=$('export-result');link.href=exportURL;link.download=`primeboard-recording.${videoExtension(blob.type)}`;link.hidden=false;
+    link.textContent=`Download video (${videoExtension(blob.type).toUpperCase()})`;
+    recordingNotice='Video ready.';
+  } catch(error) {
+    recordingNotice=job.controller.signal.aborted ? 'Export cancelled. Your recording is still saved.'
+      : `Could not export video: ${error.message} Your recording is still saved.`;
+  } finally { finishVideoExport(); }
 }
 
 function bindInputs() {
@@ -681,7 +666,7 @@ function bindInputs() {
   $('mode-reset').addEventListener('click', () => cubeView.resetCamera());
   $('mode-save').addEventListener('click', () => cubeView.saveImage(currentNumber));
   window.addEventListener('keydown', event => {
-    if(videoExport||exportPending)return;
+    if(videoExport)return;
     if (event.code === 'Escape') { clear(); return; }
     if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey || typingTarget(event.target)) return;
     if (event.code === 'Space' && !event.target.closest('button, summary, a')) {
@@ -717,7 +702,6 @@ function bindInputs() {
     $('keyboard').addEventListener(type, event => { pointers.delete(event.pointerId); release(`pointer-${event.pointerId}`); });
   }
   const stop = () => {
-    if(document.hidden)cancelVideoExport();
     if(recorder.active)finishRecording();
     pointers.clear(); midi?.reset(); instrument.clear();
     if (player.state !== 'playing') synth.stop();
@@ -725,7 +709,7 @@ function bindInputs() {
   };
   window.addEventListener('blur', stop);
   document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
-  window.addEventListener('pagehide', stop);
+  window.addEventListener('pagehide', () => { cancelVideoExport(); stop(); });
   $('plate-readout').addEventListener('change', () => { configureResonator(); render(); $('keyboard').focus({ preventScroll: true }); });
   $('plate-sand-reset').addEventListener('click', () => { plateDisplay.redistributeSand(); $('keyboard').focus({ preventScroll: true }); });
   $('plate-motion').addEventListener('click', () => { animatePlate = !animatePlate; render(); });
@@ -829,14 +813,10 @@ function bindInputs() {
       }
       renderSongControls();
     }
-    plateDisplay?.tick(timestamp, visualization === 'modes' && (animatePlate || Boolean(videoExport)) && player.state !== 'paused' && !document.hidden);
+    plateDisplay?.tick(timestamp, visualization === 'modes' && animatePlate && player.state !== 'paused' && !document.hidden);
     if (cubeView) {
       cubeView.transportPaused = player.state === 'paused';
       cubeView.tick(timestamp);
-    }
-    if(videoExport) {
-      exportFrame();
-      if(synth.context.currentTime>=exportUntil)videoExport.stop();
     }
     requestAnimationFrame(animateSong);
   };

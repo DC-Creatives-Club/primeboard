@@ -78,7 +78,7 @@ export class ModeDisplay {
     }
   }
 
-  setState(exponents, readout, exposure) {
+  setState(exponents, readout, exposure, draw = true) {
     this.prepare();
     this.bank.setWeights(exponents, this.interaction);
     this.exponents = [...exponents];
@@ -87,7 +87,18 @@ export class ModeDisplay {
     this.active = exponents.flatMap((e, i) => (e || this.bank.q[i] > .002) ? [{ e, amplitude: Math.sqrt(e), index: i, field: this.fields[i], nodes: this.nodes[i], color: this.colors[i] }] : []);
     const description = readout === 'sand' ? 'Six thousand sand grains gradually gathering in quiet regions of a resonantly driven plate' : readout === 'nodes' ? 'Individual colored nodal patterns' : readout === 'strength' ? 'Instantaneous squared displacement, brighter where displacement is larger' : 'Signed displacement, blue positive and orange negative';
     this.canvas.setAttribute('aria-label', this.active.length ? `${description}. Active keys: ${this.active.map(a => `${KEYS[a.index].letter}, mode ${this.modeLabel(a.index)}, weight ${a.e}`).join('; ')}.` : readout === 'sand' ? 'Sand resting on a silent square plate. Hold a key or use Sustain to form a pattern.' : 'Silent square plate. Play a key to see its mode.');
-    this.draw();
+    if (draw) this.draw();
+  }
+
+  createExportView(canvas, rows) {
+    this.prepare();
+    canvas.width = canvas.height = this.size;
+    const view = new ModeDisplay(canvas, rows);
+    // Share immutable mode grids, but never the live envelopes or particles.
+    for (const key of ['model', 'freePlate', 'spec', 'fields', 'nodes', 'readout', 'exposure', 'sandFields']) view[key] = this[key];
+    view.bank = new ModePulse(view.spec);
+    if (this.sand) view.sand = this.sand.clone();
+    return view;
   }
 
   tick(now, moving) {

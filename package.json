@@ -1,6 +1,6 @@
 {
   "name": "primeboard",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "productName": "Primeboard",
@@ -13,6 +13,7 @@
     "test": "node --test",
     "build": "node scripts/build.mjs",
     "version": "node scripts/app-version.mjs",
+    "vendor:video": "node scripts/video-vendor.mjs",
     "desktop:start": "electron-forge start",
     "desktop:package": "electron-forge package",
     "desktop:make": "electron-forge make",
@@ -22,8 +23,13 @@
     "node": ">=22"
   },
   "license": "MIT",
-  "config": { "forge": "./forge.config.mjs" },
-  "allowScripts": { "electron": true, "electron-winstaller": true },
+  "config": {
+    "forge": "./forge.config.mjs"
+  },
+  "allowScripts": {
+    "electron": true,
+    "electron-winstaller": true
+  },
   "devDependencies": {
     "@electron-forge/cli": "8.0.1",
     "@electron-forge/maker-deb": "8.0.1",
@@ -33,7 +39,9 @@
     "@electron-forge/plugin-fuses": "8.0.1",
     "@electron/fuses": "2.1.3",
     "@resvg/resvg-js": "2.6.2",
-    "electron": "45.3.4"
+    "electron": "45.3.4",
+    "esbuild": "0.28.2",
+    "mediabunny": "1.66.1"
   },
   "dependencies": {
     "electron-squirrel-startup": "1.0.1"

@@ -48,13 +48,15 @@ void main() {
 }`;
 
 export class CubeView {
-  constructor(canvas, onError) {
+  constructor(canvas, onError, renderSize = null) {
     this.canvas = canvas; this.onError = onError;
     this.exponents = Array(26).fill(0);
     this.interaction = 'strike';
     this.yaw = -.58; this.pitch = .36; this.seconds = 0;
     this.paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.dirty = true; this.visible = true; this.enabled = true;
+    this.renderSize = renderSize;
+    if (renderSize) return; // Detached export view: no input or layout observers.
     this.observer = new IntersectionObserver(entries => { this.visible = entries[0].isIntersecting; this.dirty = true; });
     this.observer.observe(canvas);
     this.resizeObserver = new ResizeObserver(() => { this.dirty = true; });
@@ -168,12 +170,33 @@ export class CubeView {
   resetCamera() { this.yaw = -.58; this.pitch = .36; this.dirty = true; }
   setPaused(value) { this.paused = value; this.dirty = true; }
 
+  createExportView(canvas) {
+    if (!this.ready || this.lost) throw new Error('Wait for the 3D surface to finish loading before exporting.');
+    const view = new CubeView(canvas, () => {}, [912, 600]);
+    view.models = this.models;
+    view.gl = canvas.getContext('webgl2', { alpha: true, antialias: true, preserveDrawingBuffer: true });
+    if (!view.gl) throw new Error('Could not create the video’s 3D renderer.');
+    try {
+      view.setModel(this.model, this.shape);
+      view.yaw = this.yaw; view.pitch = this.pitch; view.paused = false; view.ready = true;
+      return view;
+    } catch (error) { view.dispose(); throw error; }
+  }
+
+  dispose() {
+    this.observer?.disconnect(); this.resizeObserver?.disconnect();
+    for (const buffer of this.buffers || []) this.gl.deleteBuffer(buffer);
+    if (this.vao) this.gl.deleteVertexArray(this.vao);
+    if (this.program) this.gl.deleteProgram(this.program);
+    this.gl?.getExtension('WEBGL_lose_context')?.loseContext();
+  }
+
   tick(milliseconds) {
     const delta = Math.min(.05, Math.max(0, (milliseconds - (this.previousTime ?? milliseconds)) / 1000));
     this.previousTime = milliseconds;
-    if (!this.ready || this.lost || !this.enabled || (!this.visible && !this.exporting) || document.hidden) return;
+    if (!this.ready || this.lost || !this.enabled || !this.visible || document.hidden) return;
     const active = this.exponents.some(Boolean) || this.bank.energy > 1e-9;
-    if ((!this.paused || this.exporting) && !this.transportPaused && active) { this.seconds += delta; this.bank.advance(delta); this.dirty = true; }
+    if (!this.paused && !this.transportPaused && active) { this.seconds += delta; this.bank.advance(delta); this.dirty = true; }
     if (!this.dirty || milliseconds - (this.lastDraw || 0) < 1000 / 60) return;
     this.draw(); this.lastDraw = milliseconds;
   }
@@ -182,7 +205,7 @@ export class CubeView {
     if (!this.ready || this.lost) return;
     const gl = this.gl, canvas = this.canvas;
     const scale = Math.min(window.devicePixelRatio || 1, 2);
-    const width = Math.round(canvas.clientWidth * scale), height = Math.round(canvas.clientHeight * scale);
+    const width = this.renderSize?.[0] ?? Math.round(canvas.clientWidth * scale), height = this.renderSize?.[1] ?? Math.round(canvas.clientHeight * scale);
     if (!width || !height) return;
     if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
     gl.viewport(0, 0, width, height); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);

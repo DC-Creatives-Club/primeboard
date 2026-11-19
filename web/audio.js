@@ -13,6 +13,19 @@ export function outputLimit(sample) {
   return magnitude <= 0.8 ? sample : Math.sign(sample) * (0.8 + 0.2 * Math.tanh((magnitude - 0.8) / 0.2));
 }
 
+// Shared by live playback and silent, offline video rendering.
+export function createOutputChain(context, volume) {
+  const compressor = context.createDynamicsCompressor();
+  compressor.threshold.value = -8; compressor.knee.value = 8;
+  compressor.ratio.value = 8; compressor.attack.value = .003; compressor.release.value = .1;
+  const limiter = context.createWaveShaper();
+  limiter.curve = Float32Array.from({ length: 4097 }, (_, i) => outputLimit(2 * i / 4096 - 1));
+  limiter.oversample = '2x';
+  const master = context.createGain(); master.gain.value = volume;
+  compressor.connect(limiter); limiter.connect(master); master.connect(context.destination);
+  return { compressor, limiter, master };
+}
+
 export class Synth {
   constructor() { this.context = null; this.voices = new Map(); this.sequenceVoices = new Set(); this.enabled = false; this.volume = 0.25; this.frequencies = DEFAULT_TONE_FREQUENCIES; }
   async enable() {
@@ -20,20 +33,7 @@ export class Synth {
     if (!AudioContext) throw new Error('Audio is not supported in this browser.');
     if (!this.context) {
       this.context = new AudioContext();
-      this.compressor = this.context.createDynamicsCompressor();
-      this.compressor.threshold.value = -8;
-      this.compressor.knee.value = 8;
-      this.compressor.ratio.value = 8;
-      this.compressor.attack.value = 0.003;
-      this.compressor.release.value = 0.1;
-      this.limiter = this.context.createWaveShaper();
-      this.limiter.curve = Float32Array.from({ length: 4097 }, (_, i) => outputLimit(2 * i / 4096 - 1));
-      this.limiter.oversample = '2x';
-      this.master = this.context.createGain();
-      this.master.gain.value = this.volume;
-      this.compressor.connect(this.limiter);
-      this.limiter.connect(this.master);
-      this.master.connect(this.context.destination);
+      Object.assign(this, createOutputChain(this.context, this.volume));
     }
     const resumed = this.context.resume();
     if (!this.resonatorNode) {

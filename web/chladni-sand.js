@@ -43,6 +43,18 @@ export class ChladniSand {
     return this.seed / 4294967296;
   }
 
+  clone() {
+    const copy = new ChladniSand({ count: this.count });
+    copy.x.set(this.x); copy.y.set(this.y); copy.variation.set(this.variation);
+    copy.seed = this.seed; copy.remainder = this.remainder;
+    if (this.fields) {
+      copy.fields = this.fields; copy.groups = this.groups; copy.size = this.size;
+      copy.power = new Float32Array(this.power.length);
+      copy.amplitudes = null; copy.active = false;
+    }
+    return copy;
+  }
+
   redistribute() {
     for (let i = 0; i < this.count; i++) {
       this.x[i] = this.random(); this.y[i] = this.random();

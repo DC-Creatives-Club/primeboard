@@ -6,8 +6,9 @@ Public app: **https://primeboard.jacksonwalters.com**.
 Primeboard remains the current name while we explore a more distinctive future
 name. See the [naming shortlist and trademark notes](docs/naming-shortlist.md).
 
-The browser app is static HTML, CSS, and JavaScript, with no runtime packages,
-accounts, telemetry, external assets, or backend. The CIE table is bundled locally.
+The browser app is static HTML, CSS, and JavaScript, with locally bundled video
+encoding support and no accounts, telemetry, external assets, or backend.
+The CIE table is bundled locally.
 The former `synesthesiaer` Python CLI is retired and its legacy files removed.
 This repository no longer builds or publishes a Python package.
 Existing PyPI releases have not been deleted or changed.
@@ -331,11 +332,33 @@ and finish when the page loses focus or becomes hidden. Storage failure leaves
 the take available to download in the current session.
 
 The recording panel supports Play/Pause/Resume, Stop, Export video, and Discard.
-Playback can switch visualizations without stopping. Export video replays the
-saved take with the current visualization and synthesized sound into a 960 × 720
-video, choosing MP4 or WebM according to browser support. Export takes the length
-of the recording; keep the tab visible. Hiding the tab cancels the export while
-preserving the take. Download the completed video using the link that appears.
+Playback can switch visualizations without stopping. Export video renders the
+saved take silently into a 960 × 720, 30 fps video, independently of live playback.
+It uses the current visualization, model, camera, exposure, pitch, and volume;
+existing playback pauses while exporting. Progress and Cancel appear in the
+recording panel. Rendering runs as fast as the device and visualization allow,
+with no real-time replay requirement. Keep the page open; hiding the tab does not
+cancel, though browsers may throttle background work. Cancel or a failed export
+preserves the saved take. Download the completed file using the link that appears.
+
+WebCodecs selects H.264/AAC in MP4 when available, otherwise VP9/Opus or VP8/Opus
+in WebM. Unsupported browsers show an actionable error; there is no silent switch
+back to real-time recording. Mediabunny is bundled locally and loaded on demand
+(see `web/vendor/README.md` for its source and license). No server, CDN, microphone,
+or screen-capture permission is involved. Run `npm run vendor:video` after changing
+the pinned dependency. Desktop installers use the same bundled exporter.
+
+Audio uses the live sine envelopes or modal solver, followed by the shared
+compressor, limiter, and volume in OfflineAudioContext. The modal solver runs in
+a worker that is terminated on cancellation. Native offline audio finishing is
+discarded if cancelled. Visual frames have explicit timestamps; every recorded
+event is applied before advancing, including taps shorter than one video frame.
+Sand starts from a copy of the current grain positions and random state, advances
+at 1/120-second steps, and leaves the live grains untouched. Takes store key events,
+not original grain trajectories. A 0.6-second tail preserves note decay. Encoding
+awaits backpressure rather than accumulating unencoded frames. PCM audio and the
+compressed output remain in memory, so long takes need more RAM (roughly 115 MB
+per ten-minute mono PCM buffer at 48 kHz, plus rendering and the encoded file).
 
 The secondary Save replay file option downloads versioned `primeboard-performance`
 JSON: timestamped integer `exponents` for Number and continuous `levels` for modal
