@@ -7,6 +7,7 @@ import { updateSongButton } from './song-controls.js';
 import { FUNDAMENTAL_HZ } from './resonator.js';
 import { KEYS, MAX_EXPONENT, parseCMF, matchingAt, spectrumXYZ, primeProduct, displayColor, chromaticity } from './color.js';
 import { Instrument, fitKeyWeights } from './instrument.js';
+import { bindPointerKeyboard } from './pointer-keyboard.js';
 import { Synth } from './audio.js';
 import { shouldUnlockAudio } from './audio-gesture.js';
 import { SONGS, SongPlayer, songSpectrum, songFrames } from './song.js';
@@ -689,32 +690,10 @@ function bindInputs() {
   });
   window.addEventListener('keyup', event => release(event.code));
 
-  const pointers = new Map();
-  $('keyboard').addEventListener('pointerdown', event => {
-    if (event.button !== 0 && event.pointerType === 'mouse') return;
-    const button = event.target.closest('.key'); if (!button) return;
-    event.preventDefault();
-    $('keyboard').focus({ preventScroll: true });
-    const index = Number(button.dataset.index);
-    pointers.set(event.pointerId, index);
-    $('keyboard').setPointerCapture(event.pointerId);
-    press(index, `pointer-${event.pointerId}`);
-  });
-  $('keyboard').addEventListener('pointermove', event => {
-    if (!pointers.has(event.pointerId)) return;
-    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('.key');
-    const next = target ? Number(target.dataset.index) : null;
-    if (pointers.get(event.pointerId) === next) return;
-    release(`pointer-${event.pointerId}`);
-    pointers.set(event.pointerId, next);
-    if (next !== null) press(next, `pointer-${event.pointerId}`);
-  });
-  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
-    $('keyboard').addEventListener(type, event => { pointers.delete(event.pointerId); release(`pointer-${event.pointerId}`); });
-  }
+  const pointerKeyboard = bindPointerKeyboard($('keyboard'), { onPress: press, onRelease: release });
   const stop = () => {
     if(recorder.active)finishRecording();
-    pointers.clear(); midi?.reset(); instrument.clear();
+    pointerKeyboard.reset(); midi?.reset(); instrument.clear();
     if (player.state !== 'playing') synth.stop();
     render();
   };
